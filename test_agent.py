@@ -149,24 +149,26 @@ dear = dict(BASEP, WHEAT=90)
 a = check(obs(tiles={(4, 3): dict(GOOSE)}, money=5000, prices=dear))
 assert any(o[:2] == ["BUY_PRODUCT", "WHEAT"] for o in a["market"]), a["market"]
 
-# 9. Refuses to sell into a floor we created -- but only where the price can
-#    actually recover. Milk and wool are drained by shops; melon is drained by
-#    the town centre at one unit a day, so a melon floor is a bet on a recovery
-#    of 1/day against a 14-tile harvest, i.e. on never selling at all.
+# 9. Sells into a crashed price rather than holding stock back. This inverts an
+#    earlier invariant, which asserted milk and wool were *withheld* below a
+#    floor. The floors, the shed-pressure release for them, the drip-feed chunk
+#    and the sell-ahead-of-the-rival trigger were each swept against a frozen
+#    copy of this agent and each lost, all converging on ~87/120. Orders clear
+#    one unit at a time alternating between players, so stock held back is just
+#    the good part of the curve left standing for the opponent. FINDINGS 10.16.
 crashed = {"WHEAT": 25, "CARROT": 35, "TOMATO": 60, "STRAWBERRY": 120, "MELON": 1,
            "EGG": 50, "MILK": 20, "WOOL": 20, "FERTILIZER": 100}
-a = check(obs(shed={"MILK": 10, "WOOL": 10}, prices=crashed))
-assert not any(o[:2] == ["SELL", "MILK"] for o in a["market"]), a["market"]
-assert not any(o[:2] == ["SELL", "WOOL"] for o in a["market"]), a["market"]
-# 9b. ...but a floor needs somewhere to wait. Once the shed is crowded the bet
-#     is off: unstorable stock is worth nothing, and holding milk one dollar
-#     under its floor once blocked $300 strawberry out of the shed entirely and
-#     ended a season on $48. See SHED_PRESSURE.
-a = check(obs(shed={"MILK": 45, "WOOL": 45}, prices=crashed))
-assert any(o[:2] == ["SELL", "MILK"] for o in a["market"]), a["market"]
-assert any(o[:2] == ["SELL", "WOOL"] for o in a["market"]), a["market"]
+for held in ({"MILK": 10, "WOOL": 10}, {"MILK": 45, "WOOL": 45}):
+    a = check(obs(shed=held, prices=crashed))
+    assert any(o[:2] == ["SELL", "MILK"] for o in a["market"]), a["market"]
+    assert any(o[:2] == ["SELL", "WOOL"] for o in a["market"]), a["market"]
 a = check(obs(shed={"MELON": 40}, prices=crashed))
 assert any(o[:2] == ["SELL", "MELON"] for o in a["market"]), a["market"]
+# 9b. Feed wheat is still held back, and that is not a market judgement: selling
+#     it and buying it back next turn was once the largest market flow of the
+#     season. With animals standing, some wheat stays in the shed.
+a = check(obs(tiles={(4, 3): dict(GOOSE)}, shed={"WHEAT": 5}, prices=BASEP))
+assert not any(o[:2] == ["SELL", "WHEAT"] for o in a["market"]), a["market"]
 # ...and always sells eggs, which cannot crash.
 a = check(obs(shed={"EGG": 40}, prices=dict(crashed, EGG=36)))
 assert ["SELL", "EGG", 40] in a["market"], a["market"]

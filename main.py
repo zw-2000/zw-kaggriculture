@@ -53,9 +53,20 @@ last day when stock in the shed is worth exactly $0.
 Kept from the old agent because they are version-independent: tile roles handed
 out as *ordered lists* nearest-shed-first (holding them in sets scattered the
 pastures by tuple hash), fixed priority tiers rather than dollar-valued tasks
-(deadlines drive this game -- feeding is worthless tomorrow), nearest-good-task
-selection trading PRIO_WEIGHT steps per tier, and drip-feeding sells except when
-the opponent's public board shows a dump coming.
+(deadlines drive this game -- feeding is worthless tomorrow), and nearest-good-task
+selection trading PRIO_WEIGHT steps per tier.
+
+*Selling is unconditional, and that is the newest and least intuitive result.*
+The agent used to ration its sells four ways -- price floors, a shed-pressure
+release for them, a per-turn drip chunk, and a trigger that cleared stock ahead
+of the opponent's visible dump. Each was swept and each lost, all converging on
+the same margin. Orders clear one unit at a time *alternating between the two
+players*, so anything held back is the good part of the price curve left standing
+for the opponent to take. The same logic sets HERD_CAP: a 14-animal herd closes
+milk at $7 and a 12-animal herd at $135. Both changes make our farm *poorer* in a
+mirror match and win head-to-head, because the leaderboard pays for market share
+rather than for farm income -- so a mirror match, or any solo-optimality
+argument, will reject exactly the changes that win. Measure head-to-head.
 """
 import math
 from collections import Counter
@@ -99,27 +110,13 @@ SHOPS = {  # mirrors kaggriculture.SHOPS; single-product shops consume double
     "FARMERS_MARKET": ["WHEAT", "CARROT", "TOMATO", "STRAWBERRY"],
 }
 
-# Refuse to sell below these prices: past them we're just donating stock to a
-# market we flooded ourselves.
-#
-# Melon is deliberately absent, unlike the old agent. A floor is a bet the price
-# recovers, and melon's only consumer is the town centre at 1 unit a day -- it
-# recovers 1/day against a 14-tile harvest, i.e. never. The frontier crashes
-# melon to $4 and takes the money. Fertilizer is absent for the same reason: no
-# shop and not even the town centre consumes it.
-SELL_FLOOR = {"MILK": 60, "WOOL": 60}
-SHED_PRESSURE = 60      # units in a 100-slot shed past which the floors are
-                        # ignored. See the sell block: a floor needs somewhere
-                        # to wait, and a full shed is a farm that cannot bank
-                        # anything it harvests.
-
-# Orders clear one unit at a time down the price curve, so a 20-unit milk order
-# walks $336 -> $294 against itself. There are 24 turns a day and the town
-# refills scarcity between them: dribble it out instead.
-SELL_CHUNK = {"EGG": 99, "WHEAT": 99}
-SELL_CHUNK_DEFAULT = 5
-RIVAL_DUMP = 20         # units standing unharvested on the opponent's board
-                        # before we stop dribbling and clear ahead of theirs
+# There are no sell restraints, and that is a measured result rather than an
+# omission. Price floors on milk and wool, a shed-pressure release for them, a
+# per-turn drip-feed chunk and a sell-ahead-of-the-rival trigger all used to live
+# here; each was swept against a frozen copy of this agent and each lost, all of
+# them converging on the same ~87/120. See the sell block in `agent` and
+# FINDINGS 10.11 and 10.16. The one thing still held back is feed wheat, which is
+# not a market judgement at all.
 
 DAYS = 30
 LAND_PRICES = [1000, 2000, 4000]
@@ -132,36 +129,125 @@ LAND_DAYS = [6, 10]     # quadrant 2 on day 6, quadrant 3 on day 10, quadrant 4
                         # calendar *without* the strawberry ramp is what scored
                         # 5/48 in the previous round -- the schedule is
                         # downstream of the income model, not upstream of it.
+LAND_DAY4 = 99          # day the fourth quadrant unlocks; anything > DAYS means
+                        # never, which is the frontier's choice in 35 of 35
+                        # seasons. Read at call time rather than folded into
+                        # LAND_DAYS so it can actually be swept -- the frontier
+                        # is strawberry-led, and WHEAT_FRACTION=0.32 changed what
+                        # land is *for*: wheat's log glut curve turns acreage
+                        # into volume that does not crash its own price.
 
-HERD_CAP = 14           # frontier median is 13 animals. Milk is linear x1.6 and
-                        # wool quadratic x3.2 above target, and the town now
-                        # drains 1/product/day, so the curves bite immediately.
+HERD_CAP = 10           # milk is linear x1.6 and wool quadratic x3.2 above
+                        # target, and the town drains only 1/product/day, so the
+                        # curves bite immediately. 14 was still gluting: it closes
+                        # milk at $7 where 12 holds $135. Two effects, and they
+                        # stack -- every animal costs a FEED, a CARE and a
+                        # COLLECT_FERTILIZER every single day, so two fewer
+                        # returns ~120 actions a season straight into crop work
+                        # (PLANT 126 -> 153, WATER 574 -> 640), and we stop
+                        # crashing the market with the harshest curve in the game.
+                        # 14 -> 12 won 87/120 on that argument alone. Then the
+                        # sell block lost its restraints and wheat took a third
+                        # of the board, which repriced the herd again: 12 -> 10
+                        # is a further 80/120 in-sample and 93/120 out-of-sample.
+                        # 8 is too few (41/120) and 14 is worth 70/120 in-sample
+                        # but only 46 out-of-sample, i.e. noise. The frontier
+                        # runs 13, but the frontier also rations its sells.
 SHEEP_CAP = 4           # wool's quadratic cliff is the harshest in the game; the
                         # frontier ends on 4 sheep and 9 cows every time.
 ANIMAL_TILES = 14       # ceiling on the pasture reservation; the live reserve
                         # tracks the herd we can actually stock (see `agent`)
-WHEAT_FRACTION = 0.20   # of all owned tiles. Feed is bought, not grown, but
+WHEAT_FRACTION = 0.38   # of all owned tiles. Feed is bought, not grown, but
                         # home wheat is what carries a bad seed through a price
                         # spike -- and wheat is the endgame crop, so this is the
                         # floor, not the target: everything strawberry and melon
                         # give back lands here.
-STRAW_TILES = 36        # the engine. 4 of 8 shop kinds want strawberry and it is
-                        # `ongoing`: planted once, four production ticks, 4-8
-                        # units a tile. Frontier sells 286 units a season at $247.
+                        #
+                        # Re-swept after the sell block dropped its restraints,
+                        # and it moved 0.26 -> 0.32 for 119/120 in-sample and
+                        # 120/120 out-of-sample, seats 60/60. Wheat is the only
+                        # product in the game with a *log* glut curve: dumping a
+                        # full throughput unit past equilibrium takes it from $25
+                        # to $20, and two units to $19. Strawberry and milk are
+                        # linear x1.6, wool sq x3.2, melon sq x3.6 -- all of them
+                        # reach the $1 floor on a modest glut. Once we sell
+                        # everything we harvest the moment we harvest it, growing
+                        # a crashable crop means crashing it ourselves, so the
+                        # mix shifts to the one thing the market can absorb.
+                        # Re-swept again after MELON_EARLY went to 12 and moved
+                        # 0.32 -> 0.38 (88/120 in-sample, 91/120 out-of-sample).
+                        #
+                        # !! DO NOT RAISE THIS. 0.41 scores 1/120 in-sample and
+                        # **0/120** out-of-sample, two tiles from the adopted
+                        # value. The obvious explanation is wrong and was tested:
+                        # `_roles` carves wheat before melon and clamps melon to
+                        # the remainder, so raising this looks like it starves the
+                        # 120/120 opening melon block. Re-ordering the carve so
+                        # melon takes its tiles first measured **neutral** (62/120)
+                        # and the cliff did not move -- 0.44 -> 6/120, 0.50 ->
+                        # 0/120 with melon fully protected. The ceiling is real:
+                        # past ~0.38 wheat is simply displacing crops worth more,
+                        # whichever one the carve order makes pay for it.
+                        # Re-sweep after any change to MELON_EARLY or HERD_CAP.
+                        # See FINDINGS 10.18 / 10.24 / 10.27.
+STRAW_TILES = 36        # INERT -- a ceiling that never binds, not a target. In
+                        # `_roles` strawberry takes `rest[:STRAW_TILES]` *after*
+                        # animals, melon and wheat have carved, and what is left
+                        # is at most 36 tiles on a three-quadrant board and 28
+                        # once melon's second wave lands. Swept 30/36/42/48: all
+                        # four give rewards identical to the dollar. Real
+                        # strawberry acreage is set by ANIMAL_TILES, MELON_LATE
+                        # and WHEAT_FRACTION; move one of those instead. Kept at
+                        # 36 only as documentation of the intent. FINDINGS 10.8.
+                        #
+                        # (4 of 8 shop kinds want strawberry and it is `ongoing`:
+                        # planted once, four production ticks, ~7 units a tile
+                        # measured. Frontier sells 286 a season at $247.)
 STRAW_STOP = 12         # last day a strawberry tile is reserved. Planted here it
                         # finishes its fourth tick on day 28; after that the
                         # reservation lapses and the tiles become wheat as the
                         # plants decay, which *is* the endgame conversion.
-MELON_EARLY = 5         # wave 1: funds the opening, harvested day 10-12
+MELON_EARLY = 12        # wave 1: funds the opening, harvested day 10-12. Was 5,
+                        # copied from the frontier's opening. On this agent 12
+                        # wins 110/120 in-sample and **120/120** out-of-sample,
+                        # mean 81k, worst 37k. The frontier spends its opening
+                        # tiles on a day-3 strawberry ramp; we spend ours on
+                        # wheat, so the melon block is no longer competing with
+                        # the engine for the same ground. 10 and 14 also clear
+                        # 107-112 out-of-sample, so this is a broad optimum, not
+                        # the 8 -> 15/120 in-sample reading next to it (noise).
 MELON_LATE = 14         # wave 2 goes in on day 10, harvested day 20-22
 MELON_WAVE2 = 10
-MELON_STOP = 14         # after this a melon tile is a wheat tile
+MELON_STOP = 12         # after this a melon tile is a wheat tile. Pulled in from
+                        # 14: melon planted on day 13-14 first yields on day
+                        # 23-24 and then occupies the tile through the window
+                        # where wheat could have cycled twice. 79/120 in-sample
+                        # and 77/120 out-of-sample, mean +7k. 16 and 18 also beat
+                        # the control in-sample but fade out of sample (75 -> 62),
+                        # so the gain is in stopping earlier, not in the exact day.
 
-MAX_HANDS = 14          # hire cost is fib(n) *per day*, so the roster has to be
-HANDS_EARLY = 4         # bought out of income. The frontier ramp is 4 hands on
-HANDS_MID = 8           # day 0, 1-4 while broke, 6-7 from day 7, 8-14 from day
-HANDS_DAY1 = 7          # 10 -- which is just "hire what today's cash allows".
-HANDS_DAY2 = 10
+MAX_HANDS = 12          # hire cost is fib(n) *per day*, so a roster of n costs
+                        # fib(n+2)-1 every single day: 10 hands is $143, 12 is
+                        # $376, 14 is $986, 18 is $6,764 and 22 is $46,367. The
+                        # last two bankrupt the farm outright -- both score
+                        # **0/120** with a mean under $4,300.
+                        #
+                        # 12 is the peak and it is sharp: 116/120 in-sample and
+                        # 117/120 out-of-sample, against 11 at 101/98, 13 at
+                        # 111/102 and 14 at 52. The cliff is arithmetic -- the
+                        # 13th and 14th hands cost 233 + 377 a day between them,
+                        # more than the whole first twelve. Note a coarse grid
+                        # hides this: sweeping 10/14/18/22 straddles the peak and
+                        # makes the constant look flat-to-bad.
+HANDS_EARLY = 4         # The ramp is bought out of income: 4 hands while broke,
+HANDS_MID = 10          # 10 from day 7, the full 12 from day 10.
+HANDS_DAY1 = 7          #
+HANDS_DAY2 = 10         # HANDS_MID was 8, fitted when the board was strawberry-
+                        # led. With wheat on a third of the tiles the mid-game
+                        # has far more work to service and the extra two hands
+                        # cost only fib(9)+fib(10) = $89 a day: 110/120 in-sample,
+                        # 106/120 out-of-sample, and it lifts the worst season to
+                        # 36,605. 9 -> 85, 11 -> 89/97, so 10 is the peak.
 
 CASH_RESERVE = 0        # the frontier opens $3,000 -> $9 and runs on $9 for two
                         # days. There is no rainy day inside 30 turns; every
@@ -170,13 +256,49 @@ PRIO_WEIGHT = 14        # steps of walking traded per priority level
 BUILD_PRIO = 6          # tier for BUILD_PASTURE -- the farm's only growth lever
 PROJ_FRACTION = 0.5     # how far into the rest of the season to price an animal
 PLANT_PRIO = 7          # tier for PLANT_*, endgame included -- see `_tasks`
+WHEAT_PLANT_PRIO = 6    # wheat replanting otherwise stays pending behind every
+                        # ordinary harvest/build action for most of the season
+STRAW_PLANT_PRIO = 5    # strawberry planting, one tier above wheat replanting.
+                        # At the bottom tier the ramp never finishes: day 7 of
+                        # seed 7 held 10 seeds beside 18 bare reserved tiles and
+                        # planted 2, and no unit was ever idle while a seed was
+                        # held -- the tiles lose a race for unit-turns, not for
+                        # cash or ground. 92/120 in-sample, 87/120 out-of-sample
+                        # (null 60). The win is *earlier*, not more: the block
+                        # fills by day 11 with no stranded seed, where tier 7
+                        # left 6 tiles bare on day 12 and 3 seeds unplanted for
+                        # the rest of the season. Sharp peak -- tier 4 collapses
+                        # to 19/120 by outranking CARE, and tier 6 to 42/120 by
+                        # tying with the wheat replant it would displace.
 WATER_PRIO = 3          # a plant that weeds over tonight, or produces tonight
-FERT_PRIO = 5           # FERTILIZE doubles a production tick or a water bonus
-PLANT_HOUR = 20         # `_new_plant` sets consecutive_unwatered = 1, so a crop
+FERT_PRIO = 3           # FERTILIZE doubles a production tick or a water bonus.
+                        # Raised from 5 on pooled evidence: 77/120 in-sample and
+                        # 70/120 out-of-sample (pooled 147/240 against a null of
+                        # 120, ~3.5 sigma). Weaker than most of this round and
+                        # honestly marginal -- the two seed sets disagree on
+                        # whether 3 or 4 is the argmax (4 scores 64 then 75), and
+                        # both arms come out seat-imbalanced where the solid
+                        # results of this round are 58/59 and 60/60. Read it as
+                        # "somewhere in 3-4 beats 5", not as an exact optimum.
+                        # 6 is clearly wrong (20/120) and 2 adds nothing (72).
+PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # must be watered the *same day* it goes in or it weeds
-                        # over. Planting in the last three hours leaves no turns
-                        # to get back to it -- and a strawberry seed is $100.
-FEED_DAYS = 3           # only grow the flock while we can feed it this long
+                        # over -- hence a cutoff at all. But the cutoff is now
+                        # nearly worthless: wheat covers a third of the board and
+                        # replants continuously, so hours 21-22 are prime
+                        # replanting time and forbidding them costs far more than
+                        # the occasional seed lost. 22 wins 111/120 in-sample and
+                        # 117/120 out-of-sample; 20 is the old value, 23 (no
+                        # cutoff at all) still beats it at 96/93, and tightening
+                        # is a catastrophe -- 17 and 14 both score **0/120**.
+FEED_DAYS = 4           # only grow the flock while we can feed it this long, and
+                        # reserve that much feed money before anything else is
+                        # spent. Raised from 3 once wheat took a third of the
+                        # board: 94/120 in-sample and 91/120 out-of-sample. It is
+                        # a second brake on herd growth and pulls the same way as
+                        # HERD_CAP, which is why both moved this round. Narrow
+                        # ridge -- 5 still wins (87/85) but 6 collapses to 41/44,
+                        # because past that the reserve starves the seed budget.
 FERT_ONGOING_ONLY = 1   # 1 = fertilize strawberry only. A fertilized tick is
                         # worth ~$250 on strawberry and ~$50 on wheat, against a
                         # fertilizer that sells for ~$45-65 -- so on wheat the
@@ -397,18 +519,28 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
         if t == "LOCKED":
             continue
         if isinstance(t, dict) and "animal" in t:
+            spec = ANIMALS[t["animal"]]
             # Feeding is survival: two missed days and the animal is gone
-            # forever. Except on the last day -- the final refresh that still
-            # produces something sellable is day 28's, so day 29's feed is a
-            # wheat bill against $0 of remaining output.
-            if not t["fed_today"] and have_wheat and day < DAYS - 1:
+            # forever. Except at the end -- the final refresh that still
+            # produces something sellable is day 28's, and base production
+            # lands whether or not the animal was fed. Day 28's feed is only
+            # worth its wheat if it unlocks a banked bonus at that refresh, or
+            # resets an escape counter that would wipe stock off the tile.
+            feed_worth = (day < DAYS - 2 or t["consecutive_unfed"] >= 1
+                          or (t.get("pending_care_bonus", 0) > 0
+                              and _next_tick(t["placed_day"], spec, day) == day))
+            if not t["fed_today"] and have_wheat and day < DAYS - 1 and feed_worth:
                 out.append((0 if t["consecutive_unfed"] >= 1 else 2, x, y, "FEED"))
             if t["yield_units"] >= 3:
                 out.append((1, x, y, "HARVEST"))       # don't stall at max_held
             # One CARE on a cow is worth a whole $336 milk -- the single
-            # highest-value action on the board. The bank pays out on the *next*
-            # production, so a bonus banked on day 28 or later never lands.
-            if not t["cared_today"] and t["fed_today"] and day < DAYS - 2:
+            # highest-value action on the board. The bank pays out on the first
+            # production refresh *after* the day it is banked, so it only lands
+            # if that tick comes by day 28. The old `day < DAYS - 2` gate was
+            # species-blind: an interval-3 sheep can run out of payable ticks
+            # as early as day 25 while a well-phased cow still has day 27.
+            if (not t["cared_today"] and t["fed_today"]
+                    and _next_tick(t["placed_day"], spec, day + 1) <= DAYS - 2):
                 out.append((4, x, y, "CARE"))
             # ~$45 a unit, and the unit is already standing here, so it costs an
             # action and no walking. It is also the only source of the fertilizer
@@ -444,18 +576,28 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
             elif role == "MELON":
                 out.append((PLANT_PRIO, x, y, "PLANT_MELON"))
             elif role == "STRAWBERRY":
-                out.append((PLANT_PRIO, x, y, "PLANT_STRAWBERRY"))
+                out.append((STRAW_PLANT_PRIO, x, y, "PLANT_STRAWBERRY"))
             elif role == "WHEAT" and day <= DAYS - 3:  # wheat first-yields day 2
-                # Planting stays the lowest tier all season, including the
-                # endgame. Promoting it from day 25 -- on the theory that the
-                # board is emptying and bare ground earns nothing -- measured
-                # +33 games of 120 and was adopted. It was an artifact: it had
-                # been measured while wheat was also being fertilized, and once
-                # FERT_ONGOING_ONLY stopped that, promoting it *lost* 15-18 games
-                # head-to-head on two disjoint seed sets. A late wheat plant pulls
-                # a unit off a strawberry tick worth five times as much.
-                out.append((PLANT_PRIO, x, y, "PLANT_WHEAT"))
+                # Promoted to tier 6 for the whole season: 110/120 in-sample,
+                # 118/120 out-of-sample vs the tier-7 baseline (parity 57).
+                # This is not the day-25 rush that 8.4 reverted -- that promoted
+                # planting only in the endgame, inside the old fertilizer
+                # config. At tier 7 a wheat tile competes with DIG and ripe
+                # harvests and stays bare for most of the season; one tier up it
+                # replants behind the builds without outranking any harvest.
+                out.append((WHEAT_PLANT_PRIO, x, y, "PLANT_WHEAT"))
     return out
+
+
+def _next_tick(placed, spec, start):
+    """First end-of-day >= start whose refresh produces for this animal.
+
+    Mirrors `_daily_refresh_animals`: end of day d produces iff
+    d+1 - placed - first_yield_day is >= 0 and divisible by the interval.
+    """
+    k = placed + spec["first"] - 1
+    return k if start <= k else start + (-(start + 1 - placed - spec["first"])
+                                         % spec["interval"])
 
 
 def _step_toward(fx, fy, tx, ty):
@@ -580,7 +722,8 @@ def agent(obs):
 
     # 3. Land, on the calendar. See LAND_DAYS.
     n_extra = len(me["unlocked_quadrants"]) - 1
-    if (n_extra < len(LAND_DAYS) and day >= LAND_DAYS[n_extra]
+    calendar = LAND_DAYS + [LAND_DAY4]   # read LAND_DAY4 here so it stays sweepable
+    if (n_extra < len(calendar) and day >= calendar[n_extra]
             and spendable >= LAND_PRICES[n_extra]):
         orders.append(["BUY_LAND"])
         spendable -= LAND_PRICES[n_extra]
@@ -625,42 +768,31 @@ def agent(obs):
             orders.append(["BUY_SEED", crop, buy])
             spendable -= buy * CROPS[crop]["seed"]
 
-    # 6. Sell, but never into a floor we created ourselves, and never faster
-    #    than the curve recovers -- except at the end, where reward is money
-    #    alone and stock still in the shed on the last tick is worth $0.
-    dumping = day >= DAYS - 2
-    # The opponent's whole board is public, unharvested `yield_units` included,
-    # so their next dump is visible a day or more before it lands. Drip-feeding
-    # assumes the curve recovers between our own orders, which it does -- but it
-    # will not recover through someone else's harvest.
-    rival = Counter()
-    for row in obs["farms"][1 - obs["player"]]["tiles"]:
-        for t in row:
-            if not isinstance(t, dict) or not t.get("yield_units"):
-                continue
-            if t.get("animal"):
-                rival[ANIMALS[t["animal"]]["product"]] += t["yield_units"]
-            elif t.get("kind") == "PLANT":
-                rival[t["crop"]] += t["yield_units"]
-    # Wheat in the shed is feed, not stock. Selling it all and buying it back
-    # next turn was the single largest market flow of the season.
-    # A floor is a bet that the price recovers, and that bet needs somewhere to
-    # wait. The shed holds 100. Measured on seed 137: milk and wool sat one
-    # dollar under their floors from day 20, filled the shed by day 23, and then
-    # blocked $300 strawberry from being deposited at all -- the season ended on
-    # $48 with a hundred units dumped into a market at $1. Above SHED_PRESSURE
-    # the floors come off: stock we cannot store is worth exactly nothing, and
-    # the room it frees is worth whatever the best crop on the board fetches.
-    crowded = sum(shed.values()) >= SHED_PRESSURE
+    # 6. Sell everything that is not being held back as feed.
+    #
+    #    This block used to ration its sells four separate ways -- price floors
+    #    on milk and wool, a shed-pressure release for those floors, a per-turn
+    #    drip-feed chunk, and a trigger that cleared stock ahead of the
+    #    opponent's visible dump. Every one of them was swept and every one of
+    #    them lost, converging on the same ~87/120: floors off 87, always-dumping
+    #    87, both 87.
+    #
+    #    They lose because they solve a solo problem. Orders clear one unit at a
+    #    time, alternating between the two players, so stock we hold back is
+    #    simply the high part of the curve left standing for the opponent -- and
+    #    the leaderboard pays for beating them, not for a tidy price. Holding
+    #    also loses outright at the end, where reward is money alone and stock in
+    #    the shed on the last tick is worth exactly $0. FINDINGS 10.16.
+    #
+    #    Wheat is the one real exception and it is not a market judgement: wheat
+    #    in the shed is feed. Selling it and buying it back next turn was once
+    #    the single largest market flow of the season.
     keep = {"WHEAT": 0 if day >= DAYS - 1 else n_animals + 10}
     sells = []
     for p in PRODUCTS:
         have = max(0, shed.get(p, 0) - keep.get(p, 0))
-        q = (have if dumping or rival[p] >= RIVAL_DUMP
-             else min(have, SELL_CHUNK.get(p, SELL_CHUNK_DEFAULT)))
-        if q > 0 and prices.get(p, 0) >= (1 if dumping or crowded
-                                          else SELL_FLOOR.get(p, 1)):
-            sells.append((q * prices.get(p, 0), p, q))
+        if have > 0:
+            sells.append((have * prices.get(p, 0), p, have))
     # Ten orders clear a turn and hiring can take six of them, so the slots that
     # are left have to go to the most valuable stock, not to whatever PRODUCTS
     # happens to list first.
