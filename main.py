@@ -15,13 +15,16 @@ YARN_STORE x3 and never unlock a BAKERY. Coverage is what matters: STRAWBERRY
 appears in four of the eight kinds (BRUNCH_SPOT, ICE_CREAM_SHOP, SMOOTHIE_SHOP,
 FARMERS_MARKET), the joint-widest in the game, and it is `ongoing` -- planted
 once, watered, harvested four times. That is why every agent above 3000 rating
-runs ~36 strawberry tiles, and why this one does.
+leads with strawberry, and why here it takes every tile the animal, melon and
+wheat carves leave it -- at most 36, and 28 once melon's second wave lands.
+STRAW_TILES is that ceiling, not a target; see its comment.
 
 *Melon has no shop demand at all.* Its only consumer is the town centre, so its
 entire season sink is about 30 units. The old 14-tile melon "bootstrap" was
 eating an 8/day subsidy that no longer exists. Melon is now what it actually is:
-a two-burst cash crop, 5 tiles to fund the opening and 14 more on day 10, gone
-by day 21.
+a two-burst cash crop, 12 tiles to fund the opening and a 14-tile second wave on
+day 10, with the reservation lapsing after day 12 so the ground falls through to
+wheat.
 
 *Animal product is capped by a much smaller drain, so the herd is small.* Milk
 is linear x1.6 and wool quadratic x3.2 above target; with 1/day of town demand
@@ -31,8 +34,9 @@ are simply dominated: 298 cows and 155 sheep across 35 top seasons, and **zero
 geese**, because a goose is 2 eggs/day off a $50 base against a cow's 1.5 milk
 off $160.
 
-The opening is spent to the floor. $3,000 becomes five animals, ten seeds and
-four hands in the first order block, and the farm runs on $9 for two days. A cow
+The opening is spent to the floor. $3,000 becomes 3 animals, 18 seeds and 4
+hands in the first order block -- 4 animals and 19 seeds by the end of day 0 --
+and the farm closes days 0 and 1 on $23 and $16. A cow
 bought on day 0 first yields on day 8; bought on day 6 it yields on day 14, and
 on a 30-day clock that is a third of its output. There is no cash reserve
 because there is no such thing as a rainy day inside 30 turns.
@@ -62,8 +66,9 @@ release for them, a per-turn drip chunk, and a trigger that cleared stock ahead
 of the opponent's visible dump. Each was swept and each lost, all converging on
 the same margin. Orders clear one unit at a time *alternating between the two
 players*, so anything held back is the good part of the price curve left standing
-for the opponent to take. The same logic sets HERD_CAP: a 14-animal herd closes
-milk at $7 and a 12-animal herd at $135. Both changes make our farm *poorer* in a
+for the opponent to take. The same logic walked HERD_CAP down 14 -> 12 -> 10: a
+14-animal herd closes milk at $7 where 12 holds $135, and 10 wins again on top
+of that. Both changes make our farm *poorer* in a
 mirror match and win head-to-head, because the leaderboard pays for market share
 rather than for farm income -- so a mirror match, or any solo-optimality
 argument, will reject exactly the changes that win. Measure head-to-head.
@@ -248,6 +253,19 @@ HANDS_DAY2 = 10         # HANDS_MID was 8, fitted when the board was strawberry-
                         # cost only fib(9)+fib(10) = $89 a day: 110/120 in-sample,
                         # 106/120 out-of-sample, and it lifts the worst season to
                         # 36,605. 9 -> 85, 11 -> 89/97, so 10 is the peak.
+                        # REVERTED: a HANDS_LATE_DAY=29 / HANDS_LATE=10 taper was
+                        # adopted for one round at 73/120 in-sample, 68/120
+                        # out-of-sample, and does not hold up. Two independent
+                        # reasons. The intervention skips the 11th and 12th hire
+                        # on the final day only, which is fib(11)+fib(12) = $233
+                        # spent once; against the observed margin spread that can
+                        # decide at most a handful of games, not the +13 claimed.
+                        # And its out-of-sample number is not a confirmation at
+                        # all -- the held-out seeds are what chose day 29 over day
+                        # 28, so the arm was fitted on both sets. The neighbours
+                        # (cap 11 at 68, day 28 at 73) are flat within noise; the
+                        # collapse it cited sits several arms away, which is not
+                        # the adjacent-arm collapse the method asks for.
 
 CASH_RESERVE = 0        # the frontier opens $3,000 -> $9 and runs on $9 for two
                         # days. There is no rainy day inside 30 turns; every
@@ -272,15 +290,20 @@ STRAW_PLANT_PRIO = 5    # strawberry planting, one tier above wheat replanting.
                         # tying with the wheat replant it would displace.
 WATER_PRIO = 3          # a plant that weeds over tonight, or produces tonight
 FERT_PRIO = 3           # FERTILIZE doubles a production tick or a water bonus.
-                        # Raised from 5 on pooled evidence: 77/120 in-sample and
-                        # 70/120 out-of-sample (pooled 147/240 against a null of
-                        # 120, ~3.5 sigma). Weaker than most of this round and
-                        # honestly marginal -- the two seed sets disagree on
-                        # whether 3 or 4 is the argmax (4 scores 64 then 75), and
-                        # both arms come out seat-imbalanced where the solid
-                        # results of this round are 58/59 and 60/60. Read it as
-                        # "somewhere in 3-4 beats 5", not as an exact optimum.
-                        # 6 is clearly wrong (20/120) and 2 adds nothing (72).
+                        # A revert to 5 was proposed and MEASURED AND REJECTED on
+                        # the post-fix agent: 3 scores 105/120 against 5's 93/120
+                        # head-to-head, a 12-win gap on a clean two-arm sweep.
+                        # Worth recording why the revert looked right and was not.
+                        # At 3 this ties WATER_PRIO, and on a strawberry
+                        # production morning `_plant_tasks` emits WATER and
+                        # FERTILIZE for the *same tile* at equal cost; `cand`
+                        # breaks that tie on the op string ("FERTILIZE" <
+                        # "WATER") and `claimed` is keyed on tile, so FERTILIZE
+                        # takes it and displaces the WATER that an ongoing crop's
+                        # fertilizer bonus requires. That inversion is real -- it
+                        # is just not fatal, because a day is 24 turns and the
+                        # displaced WATER lands on a later one, while the earlier
+                        # FERTILIZE does not come back. Mechanism, benchmarked.
 PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # must be watered the *same day* it goes in or it weeds
                         # over -- hence a cutoff at all. But the cutoff is now
@@ -577,7 +600,18 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
                 out.append((PLANT_PRIO, x, y, "PLANT_MELON"))
             elif role == "STRAWBERRY":
                 out.append((STRAW_PLANT_PRIO, x, y, "PLANT_STRAWBERRY"))
-            elif role == "WHEAT" and day <= DAYS - 3:  # wheat first-yields day 2
+            # ANIMAL is here as well as above, and that is the whole fix: with
+            # `build_budget == 0` an empty ANIMAL tile used to match no branch at
+            # all and emit no task, so it stayed bare for the rest of the season.
+            # It is not a rare state -- once the herd reaches HERD_CAP the budget
+            # is 0 permanently, and `_roles` re-sorts by distance at each land
+            # unlock, so standing animals rank out of the innermost slice while
+            # empty tiles rank into it. Measured at 21-41 tile-days a season from
+            # day 10, on the lowest-walk tiles on the board; a weed was observed
+            # squatting one for five days, and weeds only spawn on empty tiles.
+            # Wheat, not strawberry: it matches the existing fall-through and
+            # keeps this separate from any acreage change.
+            elif role in ("WHEAT", "ANIMAL") and day <= DAYS - 3:  # wheat first-yields day 2
                 # Promoted to tier 6 for the whole season: 110/120 in-sample,
                 # 118/120 out-of-sample vs the tier-7 baseline (parity 57).
                 # This is not the day-25 rush that 8.4 reverted -- that promoted
@@ -673,8 +707,9 @@ def agent(obs):
     # A pasture is normally a growth lever and waits its turn behind the daily
     # chores -- raising it costs the flock, measured. But an animal already
     # bought and sitting in the shed is $400-500 earning nothing per day it has
-    # nowhere to stand, and the opening buys five of them before a single
-    # pasture exists. While any are waiting, housing them outranks everything.
+    # nowhere to stand, and the opening buys three of them in the first order
+    # block -- four by the end of day 0 -- before a single pasture exists. While
+    # any are waiting, housing them outranks everything.
     tasks = sorted(_tasks(me, roles, day, hour, any(i.get("WHEAT") for i in invs),
                           build_budget, build_op, 2 if pending else BUILD_PRIO))
     wanted = Counter(op for _, _, _, op in tasks)
@@ -716,7 +751,16 @@ def agent(obs):
     #    a full roster doesn't eat the whole order budget at hour 0.
     cap = (HANDS_EARLY if day < HANDS_DAY1
            else HANDS_MID if day < HANDS_DAY2 else MAX_HANDS)
-    if hour <= (cap - 1) // 6:
+    #    A single hiring hour is a trap whenever `cap` is small: `(4-1)//6 == 0`,
+    #    so the entire opening roster is attempted at hour 0 -- which
+    #    CASH_RESERVE=0 guarantees is the day's cash minimum. Measured on seeds 7
+    #    and 13: day 4 opens at $0.00, all four hires are refused, $1,139 lands at
+    #    hour 1, and the farm works the remaining 23 turns with no hands at all.
+    #    `hires_today` counts only *successful* hires -- the environment's
+    #    `_do_hire` returns before incrementing when it cannot pay -- so retrying
+    #    while the roster is short is self-limiting: a day that fills at hour 0
+    #    emits nothing afterwards and is byte-identical to before.
+    if me["hires_today"] < cap and hour <= max(3, (cap - 1) // 6):
         for _ in range(min(6, max(0, cap - me["hires_today"]))):
             orders.append(["HIRE"])
 
@@ -796,15 +840,25 @@ def agent(obs):
     # Ten orders clear a turn and hiring can take six of them, so the slots that
     # are left have to go to the most valuable stock, not to whatever PRODUCTS
     # happens to list first.
-    for _, p, q in sorted(sells, reverse=True):
-        orders.append(["SELL", p, q])
+    #
+    # Held back from `orders` and merged at the return, because the *index* an
+    # order sits at is priced. `_process_market` walks queue positions -- only
+    # orders at the same index interleave, and index 0 fully resolves, walking
+    # the price, before index 1 is quoted. Being first weakly dominates for a
+    # sell: matched at the same index both players are quoted the identical
+    # pre-commit inventory and split the curve unit for unit; ahead of them we
+    # take the whole undegraded curve. Measured penalty for slot 8 against slot
+    # 0 is 88% on milk, 42% on melon, 35% on glut wool -- and milk, melon and
+    # wool are exactly what sits at slots 7-9 today, behind six HIREs. A mirror
+    # cannot see any of this: both sides sit at identical slots, which is why it
+    # survived six rounds of benchmarking.
+    sells = [["SELL", p, q] for _, p, q in sorted(sells, reverse=True)]
 
     # ---------------- unit actions -----------------------------------------
     seeds = dict(priv["seeds"])
     stock = {a: shed.get(a, 0) for a in ANIMALS}
     # Local tallies, never `shed` itself: `obs` is the live observation and two
     # units in the same turn must not both be handed the last unit of stock.
-    fert_left = shed.get("FERTILIZER", 0)
     claimed = set()
     acts = [None] * len(units)
 
@@ -845,20 +899,18 @@ def agent(obs):
                 if take:
                     acts[u] = ["PICKUP", a, take]
                     stock[a] -= take
-            # Fertilizer is the only consumable a unit cannot obtain where it is
-            # needed. COLLECT_FERTILIZER happens at a pasture and FERTILIZE
-            # happens on a crop, so the only fertilizer in the field is whatever
-            # a unit happened to be holding when it walked past -- which is why
-            # ~26 FERTILIZE tasks a turn were emitted and ~118 were ever executed
-            # in a whole season. Carrying a few out of the shed closes that loop.
-            # It is a real trade, not free: fertilizer sells for ~$45-65 and the
-            # tick it doubles is worth ~$250 on strawberry but only ~$50 on
-            # wheat, so FERT_CARRY is swept rather than assumed.
-            if (acts[u] is None and FERT_CARRY and not inv.get("FERTILIZER")
-                    and wanted["FERTILIZE"] and fert_left > 0):
-                take = min(FERT_CARRY, fert_left)
-                acts[u] = ["PICKUP", "FERTILIZER", take]
-                fert_left -= take
+            # A shed PICKUP of fertilizer used to sit here, meant to close the
+            # loop between COLLECT_FERTILIZER (at a pasture) and FERTILIZE (on a
+            # crop). Deleted: it fired 0-2 times a season against 158-248 turns
+            # that wanted fertilizer, for two reasons that both hold every turn.
+            # The wheat PICKUP above claims the only unit standing on the shed at
+            # hour 0 (hands have not respawned yet), and FERTILIZER is in
+            # PRODUCTS with no `keep` entry, so the sell block empties the shed of
+            # it every hour 0 anyway. The live source was never this: it is
+            # COLLECT_FERTILIZER in the field, which leaves the collecting unit
+            # holding FERT_CARRY units where the crops are -- so FERT_CARRY stays,
+            # governing the banking threshold above, and the 34-38 real FERTILIZE
+            # acts a season are unaffected.
         # Hands hold everything until they walk it back; head home when loaded.
         elif n_produce >= 12:
             tx, ty = min(shed_tiles, key=lambda c: abs(c[0] - ux) + abs(c[1] - uy))
@@ -944,4 +996,10 @@ def agent(obs):
         else:
             acts[u] = ["PASS"]
 
-    return {"farmer": acts[0], "hands": acts[1:], "market": orders[:10]}
+    # Sells take the slots the one-shot orders leave free, so they lead the queue
+    # without displacing anything: the set sent is identical to `(orders +
+    # sells)[:10]`, only its order changes. The feed BUY_PRODUCT ends up behind
+    # them, which is the right way round -- a buy wants the price walked down.
+    free = max(0, 10 - len(orders))
+    return {"farmer": acts[0], "hands": acts[1:],
+            "market": (sells[:free] + orders + sells[free:])[:10]}
