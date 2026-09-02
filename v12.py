@@ -245,22 +245,7 @@ MAX_HANDS = 12          # hire cost is fib(n) *per day*, so a roster of n costs
                         # hides this: sweeping 10/14/18/22 straddles the peak and
                         # makes the constant look flat-to-bad.
 HANDS_EARLY = 4         # The ramp is bought out of income: 4 hands while broke,
-HANDS_MID = 12          # the FULL roster from day 7, not from day 10 -- at
-                        # MAX_HANDS=12 this value makes HANDS_DAY2 inert, so the
-                        # ramp is now 4 hands while broke and 12 from day 7.
-                        # Swept jointly with HANDS_EARLY per 11.6, which is the
-                        # only way it is visible: worth +9 at HANDS_EARLY=4 and
-                        # **-28** at HANDS_EARLY=8 (13/120), so the sign flips
-                        # inside the grid and either constant alone reads as
-                        # noise. 68/120 in-sample against a 59 null, and
-                        # 78/120 out-of-sample against that control's 58 --
-                        # it strengthens on held-out seeds, seats 37/41.
-                        # HANDS_DAY1 re-swept underneath it and stays at 7:
-                        # 6 -> 39/120, 5 -> 58, 4 -> 2.
-                        # NOT a labour-throughput win, and the mechanism is
-                        # still unknown: instrumented, the two extra hands buy
-                        # +21 productive actions and +161 PASS. Recorded as
-                        # measured-but-unexplained rather than dressed up.
+HANDS_MID = 10          # 10 from day 7, the full 12 from day 10.
 HANDS_DAY1 = 7          #
 HANDS_DAY2 = 10         # HANDS_MID was 8, fitted when the board was strawberry-
                         # led. With wheat on a third of the tiles the mid-game
