@@ -285,7 +285,26 @@ HANDS_DAY2 = 10         # HANDS_MID was 8, fitted when the board was strawberry-
 CASH_RESERVE = 0        # the frontier opens $3,000 -> $9 and runs on $9 for two
                         # days. There is no rainy day inside 30 turns; every
                         # dollar not compounding by day 2 is a dollar wasted.
-PRIO_WEIGHT = 14        # steps of walking traded per priority level
+PRIO_WEIGHT = 1         # steps of walking traded per priority level. Was 14,
+                        # which on an 18-step board let a unit cross the whole
+                        # farm for one tier -- priority dominated distance
+                        # almost completely. Two costs, and they compound: the
+                        # walking itself, and tier-6 PLANT_WHEAT never running
+                        # while any tier-0..5 chore existed anywhere on the map.
+                        # Measured: from day 13 the farm is 0% idle with 15-37
+                        # tiles bare, seeds in hand and the PLANT tasks queued.
+                        # The frontier carries 0 empty tiles from day 11 to 27
+                        # and closes on ~145k against our ~90k.
+                        # 1 -> 118/120 in-sample and 118/120 out-of-sample
+                        # (round 5), against a 56/57 control; 2 -> 108/117,
+                        # 3 -> 110/101, 4 -> 81, 6 -> 64, 10 -> 53, 14 -> 56.
+                        # It also carries the best worst case in the table
+                        # ($46,875 vs the control's $33,641) -- nearest-first
+                        # does not starve FEED, it protects it, because a unit
+                        # no longer abandons a nearby animal to cross the board.
+                        # FINDINGS 10.9 filed this constant as "flat/inert on
+                        # this farm shape"; that was measured before anyone knew
+                        # the late game was labour-starved.
 BUILD_PRIO = 6          # tier for BUILD_PASTURE -- the farm's only growth lever
 PROJ_FRACTION = 0.5     # how far into the rest of the season to price an animal
 PLANT_PRIO = 7          # tier for PLANT_*, endgame included -- see `_tasks`
