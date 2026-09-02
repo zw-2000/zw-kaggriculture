@@ -158,19 +158,40 @@ assert any(o[:2] == ["BUY_PRODUCT", "WHEAT"] for o in a["market"]), a["market"]
 #    the good part of the curve left standing for the opponent. FINDINGS 10.16.
 crashed = {"WHEAT": 25, "CARROT": 35, "TOMATO": 60, "STRAWBERRY": 120, "MELON": 1,
            "EGG": 50, "MILK": 20, "WOOL": 20, "FERTILIZER": 100}
+#    Checked at hour=5, outside the hiring window, on purpose. This invariant
+#    is about PRICE-based rationing -- "never withhold stock because the price
+#    looks bad" -- and asserting it on a day-0 hiring turn tests something else
+#    entirely: queue capacity. The opening block is 6 HIRE + 2 BUY_ANIMAL +
+#    2 BUY_SEED = exactly maxMarketOrdersPerTurn, so `free` is 0 and sells get
+#    no slot -- and a day-0 shed holding milk and wool is a state play cannot
+#    reach, since no animal has produced yet. Queue pressure is real but small
+#    and unrelated to hiring: measured over a season it leaves 46 units unoffered
+#    at HANDS_EARLY=6 against 70 at HANDS_EARLY=4, every occurrence on days
+#    17-28 from feed and seed buys. Section 9c covers that path directly.
 for held in ({"MILK": 10, "WOOL": 10}, {"MILK": 45, "WOOL": 45}):
-    a = check(obs(shed=held, prices=crashed))
+    a = check(obs(shed=held, prices=crashed, hour=5))
     assert any(o[:2] == ["SELL", "MILK"] for o in a["market"]), a["market"]
     assert any(o[:2] == ["SELL", "WOOL"] for o in a["market"]), a["market"]
-a = check(obs(shed={"MELON": 40}, prices=crashed))
+a = check(obs(shed={"MELON": 40}, prices=crashed, hour=5))
 assert any(o[:2] == ["SELL", "MELON"] for o in a["market"]), a["market"]
+# 9a. Sells still LEAD the queue whenever the one-shot orders leave any room.
+#     That is the other half of what section 9's hour-0 form used to conflate
+#     with rationing, and it is the part that carries money: _process_market
+#     walks queue positions, so index 0 takes the whole undegraded curve.
+a = check(obs(shed={"MILK": 20}, prices=crashed, hour=5, day=12, quads=("NW", "NE")))
+mk = a["market"]
+assert any(o[:2] == ["SELL", "MILK"] for o in mk), mk
+assert mk[0][0] == "SELL", f"sells must lead the queue: {mk}"
 # 9b. Feed wheat is still held back, and that is not a market judgement: selling
 #     it and buying it back next turn was once the largest market flow of the
 #     season. With animals standing, some wheat stays in the shed.
-a = check(obs(tiles={(4, 3): dict(GOOSE)}, shed={"WHEAT": 5}, prices=BASEP))
+#     Checked at hour=5 like section 9: on a hiring turn no sells are emitted
+#     at all, so this assertion would hold vacuously rather than proving the
+#     feed reserve does anything.
+a = check(obs(tiles={(4, 3): dict(GOOSE)}, shed={"WHEAT": 5}, prices=BASEP, hour=5))
 assert not any(o[:2] == ["SELL", "WHEAT"] for o in a["market"]), a["market"]
 # ...and always sells eggs, which cannot crash.
-a = check(obs(shed={"EGG": 40}, prices=dict(crashed, EGG=36)))
+a = check(obs(shed={"EGG": 40}, prices=dict(crashed, EGG=36), hour=5))
 assert ["SELL", "EGG", 40] in a["market"], a["market"]
 
 # 9c. Never FERTILIZEs without fertilizer in that unit's inventory -- same

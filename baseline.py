@@ -267,7 +267,37 @@ MAX_HANDS = 12          # hire cost is fib(n) *per day*, so a roster of n costs
                         # more than the whole first twelve. Note a coarse grid
                         # hides this: sweeping 10/14/18/22 straddles the peak and
                         # makes the constant look flat-to-bad.
-HANDS_EARLY = 4         # The ramp is bought out of income: 4 hands while broke,
+HANDS_EARLY = 6         # 6 hands from day 0, not 4. Hands 5 and 6 cost
+                        # fib(5)+fib(6) = $13/day between them, which the
+                        # opening could always afford; what changed is that
+                        # they now convert into work. On a farm spending 61% of
+                        # its actions walking they bought almost nothing (6
+                        # scored 45 and 42 of 120 at PRIO_WEIGHT=14); under
+                        # nearest-first scheduling they buy real actions.
+                        # 88/120 in-sample (88W-32L) and 79/120 out-of-sample
+                        # (79W-41L, seats 38/41) against a 60/120 control.
+                        # Joint with HANDS_DAY1 per 11.6 and the interaction is
+                        # sharp: 6 with HANDS_DAY1=5 collapses to 26/120, 8 with
+                        # DAY1=5 to 3/120. HANDS_DAY1 stays 7.
+                        #
+                        # A HIRE_BURST knob was added and REMOVED here. The hire
+                        # block emits up to 6 HIREs a turn, and at cap=6 the
+                        # opening block is 6 HIRE + 2 BUY_ANIMAL + 2 BUY_SEED =
+                        # exactly maxMarketOrdersPerTurn, so `free` goes to 0
+                        # and sells get no slot. Capping the burst fixes that
+                        # and costs far more than it saves: burst 4 takes this
+                        # to 55/120 and burst 3 to 48, and at HANDS_EARLY=4
+                        # burst 4/3 score 20/18. The burst matters on days 7+
+                        # where cap is 12 -- hiring is cash-limited hour by
+                        # hour, so 6 attempts a turn over hours 0-3 fills a
+                        # 12-roster where 4 attempts does not.
+                        # Measured instead of argued: at HANDS_EARLY=6 the
+                        # stock left unoffered on a full queue is 46 units /
+                        # $1,992 a season against 4's 70 units / $1,506 -- no
+                        # worse -- and every such turn falls on days 17-28,
+                        # i.e. mid-season feed and seed buys, never the hire
+                        # window. See test_agent.py section 9.
+                        # Original note: the ramp is bought out of income,
 HANDS_MID = 12          # the FULL roster from day 7, not from day 10 -- at
                         # MAX_HANDS=12 this value makes HANDS_DAY2 inert, so the
                         # ramp is now 4 hands while broke and 12 from day 7.
