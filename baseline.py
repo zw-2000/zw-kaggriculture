@@ -308,7 +308,25 @@ PRIO_WEIGHT = 1         # steps of walking traded per priority level. Was 14,
 BUILD_PRIO = 6          # tier for BUILD_PASTURE -- the farm's only growth lever
 PROJ_FRACTION = 0.5     # how far into the rest of the season to price an animal
 PLANT_PRIO = 7          # tier for PLANT_*, endgame included -- see `_tasks`
-WHEAT_PLANT_PRIO = 6    # wheat replanting otherwise stays pending behind every
+WHEAT_PLANT_PRIO = 9    # the BOTTOM tier, below melon/dig (7) and strawberry
+                        # (5). Raised from 6 after PRIO_WEIGHT went to 1, and
+                        # the direction is the opposite of what fixing the
+                        # planting starvation suggests -- it follows from it.
+                        # At PRIO_WEIGHT=1 wheat already replants 9-25 tiles a
+                        # day, so the question stopped being "does planting
+                        # happen" and became "what does a unit abandon to do
+                        # it". Wheat is the cheapest crop on the board ($10 a
+                        # seed) so it is what should wait: pushed to the bottom,
+                        # units clear the chore in front of them and plant a
+                        # bare tile when one is *near*, which is exactly what
+                        # nearest-first scheduling is good at.
+                        # Sharp peak, and a null constant cannot make this
+                        # shape: 3 -> 32/120, 6 -> 60 (control), 9 -> 69,
+                        # 12 -> 21, 15 -> 9. Out of sample 9 scores 76/120
+                        # (76W-44L, seats 37/39) against the control's 60, so
+                        # it strengthens on held-out seeds, and lifts the worst
+                        # season from $30,162 to $45,733.
+                        # Original note, still true at tier 6: wheat replanting
                         # ordinary harvest/build action for most of the season
 STRAW_PLANT_PRIO = 5    # strawberry planting, one tier above wheat replanting.
                         # At the bottom tier the ramp never finishes: day 7 of
