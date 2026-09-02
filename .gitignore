@@ -3,3 +3,13 @@ __pycache__/
 replay.html
 replays/
 *.vsix
+docs/
+agent/
+.claude/
+.agents/
+FINDINGS.html
+GATES*.md
+skills-lock.json
+engine/
+train/
+submit/
