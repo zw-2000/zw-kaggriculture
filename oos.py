@@ -39,7 +39,7 @@ if __name__ == "__main__":
             k, vals = a.split("=", 1)
             grid[k] = [float(v) if "." in v else int(v) for v in vals.split(",")]
     arms = [dict(zip(grid, c)) for c in itertools.product(*grid.values())] if grid else []
-    print(f"{'wins':>8} {'ties':>5} {'seat0':>6} {'seat1':>6} {'mean':>9} {'worst':>9}   config")
+    print(f"{'W-L-T':>14} {'score':>7} {'seat0':>6} {'seat1':>6} {'mean':>9} {'worst':>9}   config")
     for cfg in arms or [{}]:
         got = go(cfg, opponent, seeds)
         mine = [m for m, _ in got]
@@ -48,5 +48,6 @@ if __name__ == "__main__":
         s0 = sum(1 for i, (m, t) in enumerate(got) if i % 2 == 0 and m > t)
         s1 = sum(1 for i, (m, t) in enumerate(got) if i % 2 == 1 and m > t)
         label = "  ".join(f"{k}={v}" for k, v in cfg.items()) or "(defaults)"
-        print(f"{w:>4}/{len(got):<3} {ties:>5} {s0:>6} {s1:>6} {statistics.mean(mine):>9,.0f} "
+        rec = f"{w}-{len(got) - w - ties}-{ties}"
+        print(f"{rec:>14} {w + ties / 2:>6.0f}/{len(got):<3} {s0:>6} {s1:>6} {statistics.mean(mine):>9,.0f} "
               f"{min(mine):>9,.0f}   {label}", flush=True)

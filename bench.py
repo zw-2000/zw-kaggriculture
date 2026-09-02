@@ -98,15 +98,23 @@ def main_():
     # head-to-head results, and the two diverge violently: LAND_USE=2.0 earns
     # 52k against the default's 59k while winning 3 games of 48, because
     # producing less leaves shared market capacity for the opponent to sell into.
-    rows.sort(key=lambda r: (r[3], r[0]), reverse=True)  # never compare the cfg dicts
+    # Rank on the Elo convention, score = wins + ties/2, not on raw wins. With no
+    # ties the two are identical, so every result measured before ties appeared
+    # stays comparable. With ties they diverge and raw wins inverts the answer:
+    # LAND_DAY4=12 scored 48 wins / 0 ties against a mirror control's 38 wins /
+    # 44 ties, which reads as +10 on wins and is really 48W-72L against an even
+    # 38W-38L -- the control's "missing" wins are ties, not losses.
+    rows.sort(key=lambda r: (r[3] + r[6] / 2, r[0]), reverse=True)
     # Ties are reported because they are not rare: a true mirror at PRIO_WEIGHT=1
     # ends 19 win / 19 loss / 22 tie over 60 games, so the null is 38/120 rather
     # than the ~59/120 that held at PRIO_WEIGHT=14. Printing wins alone makes a
     # tie indistinguishable from a loss and silently moves the null under you.
-    print(f"{'mean':>9} {'median':>9} {'worst':>9} {'wins':>7} {'ties':>5}   config")
+    print(f"{'mean':>9} {'median':>9} {'worst':>9} {'W-L-T':>14} {'score':>7}   config")
     for mean, med, worst, wins, n, cfg, ties in rows:
         label = "  ".join(f"{k}={v}" for k, v in cfg.items()) or f"(defaults, vs {opponent})"
-        print(f"{mean:>9,.0f} {med:>9,.0f} {worst:>9,.0f} {wins:>3}/{n:<3} {ties:>5}   {label}")
+        rec = f"{wins}-{n - wins - ties}-{ties}"
+        print(f"{mean:>9,.0f} {med:>9,.0f} {worst:>9,.0f} {rec:>14} "
+              f"{wins + ties / 2:>6.0f}/{n:<3}   {label}")
 
 
 if __name__ == "__main__":
