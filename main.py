@@ -361,6 +361,29 @@ PRIO_WEIGHT = 1         # steps of walking traded per priority level. Was 14,
 BUILD_PRIO = 6          # tier for BUILD_PASTURE -- the farm's only growth lever
 PROJ_FRACTION = 0.5     # how far into the rest of the season to price an animal
 PLANT_PRIO = 7          # tier for PLANT_*, endgame included -- see `_tasks`
+WHEAT_RUSH_DAY = 26     # day from which wheat replanting jumps to
+WHEAT_RUSH_PRIO = 2     # WHEAT_RUSH_PRIO. 99 means never = the exact control.
+                        # Aimed at the one gap the frontier diff still shows:
+                        # on days 24-28 we carry 13-24 bare tiles where the
+                        # frontier carries 1, and its day-26 board is 57 wheat
+                        # to our 18. WHEAT_PLANT_PRIO=9 parks replanting at the
+                        # bottom tier, which is right mid-season and plausibly
+                        # wrong in the last five days, when a wheat tile has
+                        # exactly one cycle left to pay for itself and nothing
+                        # else will ever use the ground.
+                        # FINDINGS 8.4 tried a rush before: "adopted at +33,
+                        # reverted at -15 once fertilizer targeting changed
+                        # underneath it; a saturated comparison against a stale
+                        # baseline" -- i.e. never cleanly measured either way.
+                        # Now it is: 98/120 in-sample (98W-22L) and 92/120
+                        # out-of-sample (92W-28L, seats 46/46) against a
+                        # 60/120 control on both sets. Clean peak, and no null
+                        # constant makes this shape: 20 -> 22, 23 -> 71,
+                        # 25 -> 90, 26 -> 98, 27 -> 82, 99 -> 60.
+                        # Wheat first-yields in 2 days and planting stops at
+                        # DAYS-3, so a rush at 26 buys the last cycle the
+                        # season can actually pay out, on ground nothing else
+                        # will ever use again.
 WHEAT_PLANT_PRIO = 9    # the BOTTOM tier, below melon/dig (7) and strawberry
                         # (5). Raised from 6 after PRIO_WEIGHT went to 1, and
                         # the direction is the opposite of what fixing the
@@ -717,6 +740,10 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
             # Wheat, not strawberry: it matches the existing fall-through and
             # keeps this separate from any acreage change.
             elif role in ("WHEAT", "ANIMAL") and day <= DAYS - 3:  # wheat first-yields day 2
+                # Endgame rush, if enabled -- see WHEAT_RUSH_DAY.
+                if day >= WHEAT_RUSH_DAY:
+                    out.append((WHEAT_RUSH_PRIO, x, y, "PLANT_WHEAT"))
+                    continue
                 # Promoted to tier 6 for the whole season: 110/120 in-sample,
                 # 118/120 out-of-sample vs the tier-7 baseline (parity 57).
                 # This is not the day-25 rush that 8.4 reverted -- that promoted
