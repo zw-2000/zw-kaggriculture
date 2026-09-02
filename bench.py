@@ -92,16 +92,21 @@ def main_():
         got = [(m, t) for c, m, t in res if c == cfg]
         mine = [m for m, _ in got]
         rows.append((statistics.mean(mine), statistics.median(mine), min(mine),
-                     sum(1 for m, t in got if m > t), len(got), cfg))
+                     sum(1 for m, t in got if m > t), len(got), cfg,
+                     sum(1 for m, t in got if m == t)))
     # Rank by wins, not money. The leaderboard is a skill rating driven by
     # head-to-head results, and the two diverge violently: LAND_USE=2.0 earns
     # 52k against the default's 59k while winning 3 games of 48, because
     # producing less leaves shared market capacity for the opponent to sell into.
     rows.sort(key=lambda r: (r[3], r[0]), reverse=True)  # never compare the cfg dicts
-    print(f"{'mean':>9} {'median':>9} {'worst':>9} {'wins':>7}   config")
-    for mean, med, worst, wins, n, cfg in rows:
+    # Ties are reported because they are not rare: a true mirror at PRIO_WEIGHT=1
+    # ends 19 win / 19 loss / 22 tie over 60 games, so the null is 38/120 rather
+    # than the ~59/120 that held at PRIO_WEIGHT=14. Printing wins alone makes a
+    # tie indistinguishable from a loss and silently moves the null under you.
+    print(f"{'mean':>9} {'median':>9} {'worst':>9} {'wins':>7} {'ties':>5}   config")
+    for mean, med, worst, wins, n, cfg, ties in rows:
         label = "  ".join(f"{k}={v}" for k, v in cfg.items()) or f"(defaults, vs {opponent})"
-        print(f"{mean:>9,.0f} {med:>9,.0f} {worst:>9,.0f} {wins:>3}/{n:<3}   {label}")
+        print(f"{mean:>9,.0f} {med:>9,.0f} {worst:>9,.0f} {wins:>3}/{n:<3} {ties:>5}   {label}")
 
 
 if __name__ == "__main__":
