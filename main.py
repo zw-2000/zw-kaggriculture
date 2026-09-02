@@ -221,7 +221,30 @@ MELON_EARLY = 12        # wave 1: funds the opening, harvested day 10-12. Was 5,
                         # the engine for the same ground. 10 and 14 also clear
                         # 107-112 out-of-sample, so this is a broad optimum, not
                         # the 8 -> 15/120 in-sample reading next to it (noise).
-MELON_LATE = 14         # wave 2 goes in on day 10, harvested day 20-22
+MELON_LATE = 0          # NO second melon wave. The tiles fall through to
+                        # strawberry, which is what the frontier does: it runs
+                        # 14 melon and 33-36 strawberry on days 11-19 where we
+                        # ran 22-29 melon and 17 strawberry.
+                        # 108/120 in-sample and 114/120 out-of-sample (114W-6L,
+                        # seats 58/56) against a 60/120 control; 6 -> 108/108,
+                        # 10 -> 104. Mean 91,904 against the control's 83,590.
+                        #
+                        # FINDINGS 3 lists this under "Refuted mechanisms -- do
+                        # not re-open": MELON_LATE=0 scored **2/120** and the
+                        # conclusion drawn was that melon never competes with
+                        # what we sell. The measurement was right and the
+                        # reading was backwards. Melon is LOW-LABOUR -- plant
+                        # once, water inside a window, harvest once -- where
+                        # strawberry is high-labour. At PRIO_WEIGHT=14 the farm
+                        # was labour-starved, so converting melon to strawberry
+                        # starved the whole board and melon looked load-bearing.
+                        # It was never load-bearing, only cheap, and cheapness
+                        # only pays while labour is scarce. With PRIO_WEIGHT=1
+                        # it is what the price curve always said it was: the
+                        # one crop that craters to $1 by day 20.
+                        # MELON_EARLY stays 12 (5 -> 41/120, 8 -> 22): the
+                        # opening wave really does fund the bootstrap. It is
+                        # only the second wave that was waste.
 MELON_WAVE2 = 10
 MELON_STOP = 12         # after this a melon tile is a wheat tile. Pulled in from
                         # 14: melon planted on day 13-14 first yields on day
