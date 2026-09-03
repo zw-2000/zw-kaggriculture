@@ -99,11 +99,21 @@ PRODUCTS = ["WHEAT", "CARROT", "TOMATO", "STRAWBERRY", "MELON",
             "EGG", "MILK", "WOOL", "FERTILIZER"]
 
 I0 = 10000
-MARKET_PARAMS = {  # mirrors kaggriculture.MARKET_PARAMS, animal products only
-    "EGG":  {"base":  50, "T": 332, "below": ("linear", 0.40), "above": ("log",    0.20)},
+MARKET_PARAMS = {  # mirrors kaggriculture.MARKET_PARAMS (1.32.7), every product
+    # The crops are here because `_projected` now has to price TOMATO. They carry
+    # no supply term -- `_projected` only knows how to count animals -- so a crop
+    # entry projects pure town drain, which is exactly the question the tomato
+    # block asks: how far below target will this be when our first tick lands.
+    "WHEAT":      {"base":  25, "T": 400, "below": ("sqrt",   0.80), "above": ("log",    0.20)},
+    "CARROT":     {"base":  35, "T": 450, "below": ("hinge",  1.00), "above": ("sqrt",   0.70)},
+    "TOMATO":     {"base":  60, "T": 200, "below": ("hinge",  0.40), "above": ("sqrt",   0.60)},
+    "STRAWBERRY": {"base": 120, "T": 100, "below": ("sqrt",   0.70), "above": ("linear", 1.60)},
+    "MELON":      {"base": 250, "T": 300, "below": ("log",    0.20), "above": ("sq",     3.60)},
+    "EGG":  {"base":  50, "T": 332, "below": ("hinge",  0.40), "above": ("log",    0.20)},
     "MILK": {"base": 160, "T": 122, "below": ("sqrt",   0.60), "above": ("linear", 1.60)},
     "WOOL": {"base": 200, "T": 105, "below": ("log",    0.20), "above": ("sq",     3.20)},
 }
+HINGE_GAIN = 8.0        # mirrors kaggriculture.HINGE_GAIN
 SHOPS = {  # mirrors kaggriculture.SHOPS; single-product shops consume double
     "BAKERY":         ["EGG", "WHEAT"],
     "PIZZA_SHOP":     ["MILK", "TOMATO", "WHEAT"],
@@ -426,6 +436,13 @@ TOMATO_TILES = 16       # tomato is the one crop nobody in the field sells, so i
                         # linear at 0.4*60/200 = $0.12 a unit, so a thousand units
                         # move the price $120. Strawberry above target is linear
                         # at $1.92 a unit and crashes after ~60.
+                        # Sizing this block off the projected price instead of a
+                        # flat count is measured and dead: gating on `proj`
+                        # scored 54/120 at a $100 floor, 50 at $150 and 44 at
+                        # $250 against a 60 control, monotone in how hard it
+                        # gates. Even a $85 tomato tile beats the wheat it
+                        # displaces -- four ticks at $85 against six units at
+                        # $43 -- so the shop lottery is not worth reacting to.
 TOMATO_DAY = 17         # tomato is ongoing with first=8, interval=1, max_yield=4,
                         # so a plant produces on exactly four days, seven days
                         # after planting. Planted day 17 those four ticks land on
@@ -562,9 +579,20 @@ def _roles(me, n, day, n_animal):
             "STRAWBERRY": straw, "MELON": melon, "TOMATO": tom}
 
 
-def _shape(f, x):
-    """The environment's price shape functions; log is ln(1+x) so f(0) = 0."""
+def _shape(f, x, T=None):
+    """The environment's price shape functions; log is ln(1+x) so f(0) = 0.
+
+    `hinge` is the one 1.32.6 did not have, and the whole reason the old mirror
+    of this table priced tomato at a sixth of its real value. It is linear in
+    x/T below the knee and quadratic above it, so f(T) == 1 like every other
+    shape and `target` keeps meaning the same thing.
+    """
     x = max(0.0, x)
+    if f == "hinge":
+        if not T or T <= 0:
+            return x
+        u = x / T
+        return u + HINGE_GAIN * max(0.0, u - 1.0) ** 2
     return (x * x if f == "sq" else math.sqrt(x) if f == "sqrt"
             else math.log1p(x) if f == "log" else x)
 
@@ -573,8 +601,9 @@ def _price_at(item, inv):
     """The environment's price curve evaluated at a hypothetical inventory."""
     p = MARKET_PARAMS[item]
     f, target = p["below"] if inv < I0 else p["above"]
-    amp = target * p["base"] / _shape(f, p["T"])
-    return max(1.0, p["base"] + (1 if inv < I0 else -1) * amp * _shape(f, abs(inv - I0)))
+    amp = target * p["base"] / _shape(f, p["T"], p["T"])
+    return max(1.0, p["base"] + (1 if inv < I0 else -1)
+               * amp * _shape(f, abs(inv - I0), p["T"]))
 
 
 def _projected(inv, day, shops, farms):
