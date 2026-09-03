@@ -1,0 +1,4 @@
+# The market price curve is load-bearing: 1.32.6 prices TOMATO, CARROT and
+# EGG on the wrong curve (no "hinge"), which is exactly the strategy the top
+# of the leaderboard runs. See FINDINGS 14.7 before changing this pin.
+kaggle-environments==1.32.7
