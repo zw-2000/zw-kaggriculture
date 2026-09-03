@@ -291,7 +291,22 @@ MAX_HANDS = 12          # hire cost is fib(n) *per day*, so a roster of n costs
                         # more than the whole first twelve. Note a coarse grid
                         # hides this: sweeping 10/14/18/22 straddles the peak and
                         # makes the constant look flat-to-bad.
-HANDS_EARLY = 6         # 6 hands from day 0, not 4. Hands 5 and 6 cost
+HANDS_EARLY = 4         # back to 4. The 6 was adopted in v17 under HERD_CAP=10
+                        # and FEED_DAYS=4, where the farm had spare cash in the
+                        # opening and the extra hands were close to free. With
+                        # HERD_CAP=13 and FEED_DAYS=3 the opening is
+                        # capital-hungry -- hands and cows bid for the same day-0
+                        # money -- and the ranking inverts:
+                        #   in-sample      4 -> 74   8 -> 42   (control 60)
+                        #   out-of-sample  4 -> 77   5 -> 73   3 -> 52  (ctrl 60)
+                        # 151/240 combined, 4 and 5 a plateau with 3 falling off.
+                        # This also retires the story that used to sit here: the
+                        # ~17% idle unit-turns were read as slack deliberately
+                        # held for the peak, "the price of contesting the market".
+                        # That explanation was fitted to a measurement taken in
+                        # the old configuration. Hire fewer hands and the idle
+                        # goes away *and* the win rate rises -- it was waste.
+                        # 6 hands from day 0, not 4. Hands 5 and 6 cost
                         # fib(5)+fib(6) = $13/day between them, which the
                         # opening could always afford; what changed is that
                         # they now convert into work. On a farm spending 61% of
