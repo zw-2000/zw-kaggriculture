@@ -457,11 +457,22 @@ TOMATO_TILES = 16       # tomato is the one crop nobody in the field sells, so i
                         # Eight geese would supply 416 eggs against a 338 drain
                         # and cancel it outright (see BUYABLE).
                         #
-                        # How much this block is worth: against `opp_notomato.py`
-                        # -- this exact agent with TOMATO_TILES=0 -- it scores
-                        # 114/120. The mirror only reports 76 because there both
-                        # farms grow it. That gap is the honest size of a change
-                        # the opponent does not copy.
+                        # How much this block is worth depends entirely on
+                        # FEED_DAYS, and neither constant is worth much alone.
+                        # All four cells against one fixed opponent,
+                        # `opp_notomato.py` (FEED_DAYS=3, TOMATO_TILES=0):
+                        #
+                        #                  TILES=0   TILES=16   tomato worth
+                        #   FEED_DAYS=3      60*       114          +54
+                        #   FEED_DAYS=4      93         90           -3
+                        #   (*) mirror of the opponent, so 60 by construction
+                        #
+                        # Swept alone at FEED_DAYS=4, tomato reads as noise and
+                        # would have been rejected. Swept alone with tomato at 0,
+                        # FEED_DAYS=3 *loses* to 4 by 93-27. They only pay
+                        # together, and the first measurement of each was taken
+                        # while the other sat at its wrong value -- which is why
+                        # tomato first measured 76 and later 114.
                         #
                         # Do NOT hold the crop for the end. The rank-2 agent
                         # (2964.9) sells its first tomato and first egg on day 29
