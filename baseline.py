@@ -493,7 +493,20 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
-FEED_DAYS = 4           # only grow the flock while we can feed it this long, and
+FEED_DAYS = 3           # was 4. Found in the head-to-head replay 105073754, not by
+                        # sweeping: on day 0 the rank-177 agent and this one spend
+                        # the same ~$2,950, and it buys 2 cows where we buy 1 and
+                        # 16 units of feed wheat we do not need yet. By day 3 it
+                        # holds 6 animals to our 4, and that compounds through
+                        # fertilizer and milk all season. This gate reserves feed
+                        # money *before* animals can be bought, so it was the
+                        # thing deciding it. 61/120 in-sample and 71/120 out of
+                        # sample against a control that landed on exactly 60
+                        # both times -- and it wins at equal mean income
+                        # (89,518 against 89,669), which is relative gain rather
+                        # than the richer-farm-fewer-wins trap that killed the
+                        # herd, fertilizer, hands and seed-order arms.
+                        # only grow the flock while we can feed it this long, and
                         # reserve that much feed money before anything else is
                         # spent. Raised from 3 once wheat took a third of the
                         # board: 94/120 in-sample and 91/120 out-of-sample. It is
