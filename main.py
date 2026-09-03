@@ -152,7 +152,21 @@ LAND_DAY4 = 99          # day the fourth quadrant unlocks; anything > DAYS means
                         # land is *for*: wheat's log glut curve turns acreage
                         # into volume that does not crash its own price.
 
-HERD_CAP = 10           # milk is linear x1.6 and wool quadratic x3.2 above
+HERD_CAP = 13           # was 10, and the 10 was not wrong so much as starved.
+                        # Every earlier herd measurement was taken at
+                        # FEED_DAYS=4, which reserved feed money before animals
+                        # could be bought -- so the cap was never the binding
+                        # constraint, the cash was, and raising it only cost
+                        # tiles. 16 scored 37/120 under that setting. With
+                        # FEED_DAYS=3 the same family re-measures at 13 -> 80/120
+                        # in-sample and 72/120 out of sample (12 and 14 both 69,
+                        # so a plateau rather than a spike; 16 still only 57).
+                        # Controls landed on exactly 60 in both runs.
+                        # This is also the frontier's own number -- FINDINGS
+                        # 10.x recorded "the frontier runs 13" and judged it
+                        # non-transferable, on a benchmark that could not afford
+                        # to fill the pasture.
+                        # milk is linear x1.6 and wool quadratic x3.2 above
                         # target, and the town drains only 1/product/day, so the
                         # curves bite immediately. 14 was still gluting: it closes
                         # milk at $7 where 12 holds $135. Two effects, and they

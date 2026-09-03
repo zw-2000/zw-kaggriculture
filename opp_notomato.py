@@ -152,7 +152,21 @@ LAND_DAY4 = 99          # day the fourth quadrant unlocks; anything > DAYS means
                         # land is *for*: wheat's log glut curve turns acreage
                         # into volume that does not crash its own price.
 
-HERD_CAP = 10           # milk is linear x1.6 and wool quadratic x3.2 above
+HERD_CAP = 13           # was 10, and the 10 was not wrong so much as starved.
+                        # Every earlier herd measurement was taken at
+                        # FEED_DAYS=4, which reserved feed money before animals
+                        # could be bought -- so the cap was never the binding
+                        # constraint, the cash was, and raising it only cost
+                        # tiles. 16 scored 37/120 under that setting. With
+                        # FEED_DAYS=3 the same family re-measures at 13 -> 80/120
+                        # in-sample and 72/120 out of sample (12 and 14 both 69,
+                        # so a plateau rather than a spike; 16 still only 57).
+                        # Controls landed on exactly 60 in both runs.
+                        # This is also the frontier's own number -- FINDINGS
+                        # 10.x recorded "the frontier runs 13" and judged it
+                        # non-transferable, on a benchmark that could not afford
+                        # to fill the pasture.
+                        # milk is linear x1.6 and wool quadratic x3.2 above
                         # target, and the town drains only 1/product/day, so the
                         # curves bite immediately. 14 was still gluting: it closes
                         # milk at $7 where 12 holds $135. Two effects, and they
@@ -456,6 +470,35 @@ TOMATO_TILES = 0        # tomato is the one crop nobody in the field sells, so i
                         # and measured it scores 46/120 at 8 tiles and 37 at 16.
                         # Eight geese would supply 416 eggs against a 338 drain
                         # and cancel it outright (see BUYABLE).
+                        #
+                        # How much this block is worth depends entirely on
+                        # FEED_DAYS, and neither constant is worth much alone.
+                        # All four cells against one fixed opponent,
+                        # `opp_notomato.py` (FEED_DAYS=3, TOMATO_TILES=0):
+                        #
+                        #                  TILES=0   TILES=16   tomato worth
+                        #   FEED_DAYS=3      60*       114          +54
+                        #   FEED_DAYS=4      93         90           -3
+                        #   (*) mirror of the opponent, so 60 by construction
+                        #
+                        # Swept alone at FEED_DAYS=4, tomato reads as noise and
+                        # would have been rejected. Swept alone with tomato at 0,
+                        # FEED_DAYS=3 *loses* to 4 by 93-27. They only pay
+                        # together, and the first measurement of each was taken
+                        # while the other sat at its wrong value -- which is why
+                        # tomato first measured 76 and later 114.
+                        #
+                        # Do NOT hold the crop for the end. The rank-2 agent
+                        # (2964.9) sells its first tomato and first egg on day 29
+                        # and it does not transfer: 46/120 holding to day 27,
+                        # 9 to day 28, 6 to day 29 against a 60 control, and
+                        # 94/120 against 114 with the opponent growing no tomato
+                        # at all -- so it loses uncontested too, not just because
+                        # a mirror opponent takes the curve first. Tomato peaks
+                        # on day 27 ($857) and falls to $707 as it is sold, so
+                        # harvesting into days 24-27 already captures the rise;
+                        # holding sells into our own dump and parks 64 units in
+                        # a 100-unit shed that discards its overflow nightly.
 TOMATO_DAY = 17         # tomato is ongoing with first=8, interval=1, max_yield=4,
                         # so a plant produces on exactly four days, seven days
                         # after planting. Planted day 17 those four ticks land on
