@@ -426,7 +426,7 @@ STRAW_PLANT_PRIO = 5    # strawberry planting, one tier above wheat replanting.
                         # the rest of the season. Sharp peak -- tier 4 collapses
                         # to 19/120 by outranking CARE, and tier 6 to 42/120 by
                         # tying with the wheat replant it would displace.
-TOMATO_TILES = 16       # tomato is the one crop nobody in the field sells, so its
+TOMATO_TILES = 0        # tomato is the one crop nobody in the field sells, so its
                         # price is never pushed above target and it spends the
                         # whole season climbing the *below* curve: $60 on day 0,
                         # $380 on day 22, $857 on day 27 (measured, rank-1 replay
@@ -456,24 +456,6 @@ TOMATO_TILES = 16       # tomato is the one crop nobody in the field sells, so i
                         # and measured it scores 46/120 at 8 tiles and 37 at 16.
                         # Eight geese would supply 416 eggs against a 338 drain
                         # and cancel it outright (see BUYABLE).
-                        #
-                        # How much this block is worth: against `opp_notomato.py`
-                        # -- this exact agent with TOMATO_TILES=0 -- it scores
-                        # 114/120. The mirror only reports 76 because there both
-                        # farms grow it. That gap is the honest size of a change
-                        # the opponent does not copy.
-                        #
-                        # Do NOT hold the crop for the end. The rank-2 agent
-                        # (2964.9) sells its first tomato and first egg on day 29
-                        # and it does not transfer: 46/120 holding to day 27,
-                        # 9 to day 28, 6 to day 29 against a 60 control, and
-                        # 94/120 against 114 with the opponent growing no tomato
-                        # at all -- so it loses uncontested too, not just because
-                        # a mirror opponent takes the curve first. Tomato peaks
-                        # on day 27 ($857) and falls to $707 as it is sold, so
-                        # harvesting into days 24-27 already captures the rise;
-                        # holding sells into our own dump and parks 64 units in
-                        # a 100-unit shed that discards its overflow nightly.
 TOMATO_DAY = 17         # tomato is ongoing with first=8, interval=1, max_yield=4,
                         # so a plant produces on exactly four days, seven days
                         # after planting. Planted day 17 those four ticks land on
