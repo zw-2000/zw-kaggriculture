@@ -25,7 +25,7 @@ def seeds_for(rnd, n=60):
 def go(cfg, opponent, seeds):
     jobs = [(cfg, opponent, s, seat) for s in seeds for seat in (0, 1)]
     with mp.Pool(min(6, mp.cpu_count())) as pool:
-        return [(m, t) for _, m, t in pool.map(bench._run, jobs)]
+        return [(m, t) for _, m, t, _o in pool.map(bench._run, jobs)]
 
 
 if __name__ == "__main__":

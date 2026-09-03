@@ -38,7 +38,7 @@ def go(cfg, opponent, seeds, procs=6):
     jobs = [(cfg, opponent, s, seat) for s in seeds for seat in (0, 1)]
     with mp.Pool(procs) as pool:
         res = pool.map(bench._run, jobs)
-    return [(m, t) for _, m, t in res]
+    return [(m, t) for _, m, t, _o in res]
 
 
 def summarise(label, got, seeds):

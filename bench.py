@@ -69,12 +69,15 @@ def _run(job):
     env = make("kaggriculture", configuration={"seed": seed})
     env.run([main.agent, opp] if seat == 0 else [opp, main.agent])
     r = [s["reward"] for s in env.steps[-1]]
-    return cfg, r[seat], r[1 - seat]
+    return cfg, r[seat], r[1 - seat], opponent
 
 
 def main_():
     args = [a for a in sys.argv[1:]]
-    opponent = next((a for a in args if "=" not in a), "self")
+    # A pool, not one opponent: a mirror benchmark cannot score a shape change
+    # that only pays against a varied field (FINDINGS 13.10). Comma-separate to
+    # run every config against every opponent and rank on the pooled score.
+    opponents = next((a for a in args if "=" not in a), "self").split(",")
     grid = {}
     for a in args:
         if "=" in a:
@@ -83,13 +86,14 @@ def main_():
     cfgs = ([dict(zip(grid, c)) for c in itertools.product(*grid.values())]
             if grid else [{}])
 
-    jobs = [(c, opponent, s, seat) for c in cfgs for s in SEEDS for seat in (0, 1)]
+    jobs = [(c, o, s, seat)
+            for c in cfgs for o in opponents for s in SEEDS for seat in (0, 1)]
     with mp.Pool(min(6, mp.cpu_count())) as pool:
         res = pool.map(_run, jobs)
 
     rows = []
     for cfg in cfgs:
-        got = [(m, t) for c, m, t in res if c == cfg]
+        got = [(m, t) for c, m, t, _ in res if c == cfg]
         mine = [m for m, _ in got]
         rows.append((statistics.mean(mine), statistics.median(mine), min(mine),
                      sum(1 for m, t in got if m > t), len(got), cfg,
@@ -111,10 +115,20 @@ def main_():
     # tie indistinguishable from a loss and silently moves the null under you.
     print(f"{'mean':>9} {'median':>9} {'worst':>9} {'W-L-T':>14} {'score':>7}   config")
     for mean, med, worst, wins, n, cfg, ties in rows:
-        label = "  ".join(f"{k}={v}" for k, v in cfg.items()) or f"(defaults, vs {opponent})"
+        label = "  ".join(f"{k}={v}" for k, v in cfg.items()) or f"(defaults, vs {','.join(opponents)})"
         rec = f"{wins}-{n - wins - ties}-{ties}"
         print(f"{mean:>9,.0f} {med:>9,.0f} {worst:>9,.0f} {rec:>14} "
               f"{wins + ties / 2:>6.0f}/{n:<3}   {label}")
+        if len(opponents) > 1:
+            # Pooled score hides non-transitivity, which is the whole reason the
+            # pool exists. Print the per-opponent split under every config.
+            for o in opponents:
+                sub = [(m, t) for c, m, t, oo in res if c == cfg and oo == o]
+                w = sum(1 for m, t in sub if m > t)
+                ti = sum(1 for m, t in sub if m == t)
+                print(f"{'':>9} {'':>9} {'':>9} "
+                      f"{f'{w}-{len(sub) - w - ti}-{ti}':>14} "
+                      f"{w + ti / 2:>6.0f}/{len(sub):<3}     vs {o}")
 
 
 if __name__ == "__main__":
