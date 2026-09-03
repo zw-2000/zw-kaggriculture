@@ -70,7 +70,7 @@ if __name__ == "__main__":
             print(f"  {len(diff)} of {len(a)} games differ; first: {diff[:3]}")
 
     if which in ("all", "v2"):
-        print("\n--- V2: true mirror on 1.32.6 (main.py vs a byte-identical copy) ---")
+        print("\n--- V2: true mirror on 1.32.7 (main.py vs a byte-identical copy) ---")
         got = go({}, "self", bench.SEEDS)
         summarise("main.py vs identical copy = PARITY", got, bench.SEEDS)
 
