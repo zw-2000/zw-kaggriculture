@@ -561,7 +561,23 @@ FERT_ONGOING_ONLY = 1   # 1 = fertilize strawberry only. A fertilized tick is
                         # worth ~$250 on strawberry and ~$50 on wheat, against a
                         # fertilizer that sells for ~$45-65 -- so on wheat the
                         # trade is roughly break-even before the walking.
-FERT_CARRY = 2          # fertilizer a unit takes from the shed to spend on
+FERT_CARRY = 3          # was 2, and like HERD_CAP the old value was a symptom of
+                        # a smaller herd. Swept at HERD_CAP=10 it decayed hard --
+                        # 4 scored 37/120, 8 scored 33 -- because ten animals do
+                        # not make enough fertilizer for a unit to carry more of
+                        # it usefully. At HERD_CAP=13 the whole curve lifts and
+                        # flattens: 3, 4 and 6 all land 77-83 out of sample.
+                        #   in-sample      3 -> 67   4 -> 68   (control 60)
+                        #   out-of-sample  3 -> 83   4 -> 79   6 -> 77  (ctrl 60)
+                        # 3 and 4 are a coin toss on 240 games (150 vs 147); 3
+                        # takes it on the out-of-sample half, which is the half
+                        # this file's own convention trusts.
+                        # FERT_ONGOING_ONLY stays 1. Fertilizing non-strawberry
+                        # crops scores 0/120 at both carry values and at both
+                        # herd sizes -- it is a priority-tier defect (a prio-3
+                        # fertilize task starves watering), not a shortage that
+                        # more fertilizer fixes. Measured dead three times now.
+                        # fertilizer a unit takes from the shed to spend on
                         # production ticks, and the amount it keeps rather than
                         # banking. 0 disables fertilizing altogether, since the
                         # only other source is whatever a unit is holding when it
