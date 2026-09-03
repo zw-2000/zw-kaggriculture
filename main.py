@@ -443,6 +443,19 @@ TOMATO_TILES = 16       # tomato is the one crop nobody in the field sells, so i
                         # gates. Even a $85 tomato tile beats the wheat it
                         # displaces -- four ticks at $85 against six units at
                         # $43 -- so the shop lottery is not worth reacting to.
+                        #
+                        # CARROT and EGG are the other two hinge products and
+                        # neither is worth planting, for one reason: a hinge only
+                        # runs if the town's drain clears the knee *after* our own
+                        # supply is subtracted, because selling refills the very
+                        # shortage we came for. On the expected draw -- 8 shop
+                        # instances over 8 types, so one of each -- tomato drains
+                        # 338 a season against our 64, leaving 274 against a knee
+                        # of 200, a 37% margin. Carrot drains 494 against our 80,
+                        # leaving 414 against a knee of 450: it never reaches it,
+                        # and measured it scores 46/120 at 8 tiles and 37 at 16.
+                        # Eight geese would supply 416 eggs against a 338 drain
+                        # and cancel it outright (see BUYABLE).
 TOMATO_DAY = 17         # tomato is ongoing with first=8, interval=1, max_yield=4,
                         # so a plant produces on exactly four days, seven days
                         # after planting. Planted day 17 those four ticks land on
