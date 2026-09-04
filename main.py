@@ -182,7 +182,20 @@ HERD_CAP = 13           # was 10, and the 10 was not wrong so much as starved.
                         # 8 is too few (41/120) and 14 is worth 70/120 in-sample
                         # but only 46 out-of-sample, i.e. noise. The frontier
                         # runs 13, but the frontier also rations its sells.
-SHEEP_CAP = 4           # wool's quadratic cliff is the harshest in the game; the
+SHEEP_CAP = 6           # was 4, and the 4 was a HERD_CAP=10 answer to a question
+                        # that changed when the herd went to 13. Three extra
+                        # animals have to go somewhere, and wool is where.
+                        #   in-sample      5 -> 68   6 -> 72   8 -> 69  (ctrl 60)
+                        #   out-of-sample  5 -> 68   6 -> 74   7 -> 76  (ctrl 60)
+                        # 6 is taken over 7 because 6 has both readings and they
+                        # agree (72/74); 7 has only the out-of-sample.
+                        # This overturns a *live* result, which is the part worth
+                        # remembering: variant_sheep8 spent a real submission slot
+                        # and hours of episodes establishing SHEEP_CAP=8 was bad.
+                        # It was bad given ten animals. Live evidence costs more
+                        # than local evidence and is no less conditional on the
+                        # configuration it was gathered in.
+                        # wool's quadratic cliff is the harshest in the game; the
                         # frontier ends on 4 sheep and 9 cows every time.
 ANIMAL_TILES = 14       # ceiling on the pasture reservation; the live reserve
                         # tracks the herd we can actually stock (see `agent`)
