@@ -673,6 +673,17 @@ WHEAT_CARRY = 6         # one hand holding all the wheat is every hand behind it
 #   PROJ_FRACTION   (0.5 and 0.7 identical)
 #   BUILD_PRIO      (6 and 9 identical)
 #
+# OPEN LEAD, not yet tested. We sell 190-225 FERTILIZER a game -- at $7-60
+# once the price has decayed -- while performing only 51 FERTILIZE acts
+# against 300+ opportunities (strawberry produces every 2 days from day 10;
+# tomato four times from day 24). A fertilized tick doubles a tomato unit
+# worth $582-857. BUY_PRODUCT is legal for FERTILIZER and we never use it.
+# The reason this is a lead and not a change: buying puts fertilizer in the
+# SHED, units need it in HAND, and the shed pickup was deleted because the
+# wheat pickup claims the shed-standing unit first. So it needs two coupled
+# changes, and at the measured 0.60 live rating per point of local margin
+# even a strong result is worth about +20 against a 1,916-point gap.
+#
 # Measured dead outright, three times across two configurations:
 #   FERT_ONGOING_ONLY=0 -> 0/120   (prio-3 fertilize task starves watering)
 #   carrot, geese, holding tomato for the endgame -- see TOMATO_TILES.
