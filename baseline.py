@@ -371,7 +371,18 @@ HANDS_EARLY = 4         # back to 4. The 6 was adopted in v17 under HERD_CAP=10
                         # i.e. mid-season feed and seed buys, never the hire
                         # window. See test_agent.py section 9.
                         # Original note: the ramp is bought out of income,
-HANDS_MID = 12          # the FULL roster from day 7, not from day 10 -- at
+HANDS_MID = 11          # one below MAX_HANDS, not the full roster. Follows
+                        # HANDS_EARLY going 6 -> 4 earlier this round: the
+                        # mid-game number was set when the early number was 6,
+                        # and moving one moved the other.
+                        #   in-sample      8 -> 35   10 -> 88   11 -> 91  (ctrl 60)
+                        #   out-of-sample  9 -> 68   10 -> 76   11 -> 87  (ctrl 60)
+                        # 178/240 combined. 11 beats 10 on both halves, which is
+                        # why the missing in-sample cell was worth buying -- 10
+                        # was the safe adoption and the worse one.
+                        # The 12th hand costs fib(12) = $144/day, about $3,300 a
+                        # season, for the least marginal work on the roster.
+                        # was: the FULL roster from day 7, not from day 10 -- at
                         # MAX_HANDS=12 this value makes HANDS_DAY2 inert, so the
                         # ramp is now 4 hands while broke and 12 from day 7.
                         # Swept jointly with HANDS_EARLY per 11.6, which is the
