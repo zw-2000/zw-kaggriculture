@@ -253,7 +253,18 @@ WHEAT_FRACTION = 0.38   # Re-swept under HERD_CAP=13 and both sides of 0.38 this
                         # whichever one the carve order makes pay for it.
                         # Re-sweep after any change to MELON_EARLY or HERD_CAP.
                         # See FINDINGS 10.18 / 10.24 / 10.27.
-STRAW_TILES = 36        # INERT -- a ceiling that never binds, not a target. In
+STRAW_TILES = 24        # was 36, and the "INERT" claim below was only ever true
+                        # in one direction. Upward it holds -- 48 is
+                        # byte-identical to 36 -- but downward the ceiling does
+                        # bind, and binding helps: strawberry is at $1 by day 20
+                        # and the 12 tiles freed go to wheat and tomato.
+                        #   in-sample      24 -> 68   48 -> 60 (identical)
+                        #   out-of-sample  18 -> 39   24 -> 66   30 -> 60
+                        # 134/240, the two samples within two games. 30 is also
+                        # identical to 36, so the binding range starts below it
+                        # and 18 overshoots -- 24 is inside a real range rather
+                        # than on a slope.
+                        # Was: INERT -- a ceiling that never binds, not a target. In
                         # `_roles` strawberry takes `rest[:STRAW_TILES]` *after*
                         # animals, melon and wheat have carved, and what is left
                         # is at most 36 tiles on a three-quadrant board and 28
