@@ -196,13 +196,17 @@ WHEAT_FRACTION = 0.38   # Re-swept under HERD_CAP=13 and both sides of 0.38 this
                         # 0.32's 80 did not replicate -- 62 on fresh seeds is +2
                         # over the null, the overfit signature this file records
                         # at 13.6. Not adopted; 0.38 stands.
-                        # The crater IS real: 0.28 scores 20 and 24 across two
-                        # disjoint seed sets, sitting between 76 and 80. This
-                        # constant quantises to whole tiles (~18/21/24/26/28 over
-                        # that range), so some count lands badly against the
-                        # per-quadrant block layout. Undiagnosed, and a latent
-                        # discontinuity anywhere near 0.28 should be treated as a
-                        # bug rather than a tuning result.
+                        # The crater at 0.28 is real -- 20 and 24 across two
+                        # disjoint seed sets, between neighbours at 76 and 80 --
+                        # and it is NOT a layout discontinuity. That was the first
+                        # guess and it is refuted: `_roles` is smooth across the
+                        # whole range. At three quadrants wheat goes 18/21/24/26/
+                        # 28 and strawberry 32/29/26/24/22, monotone, no jump.
+                        # So a smooth input produces a smooth board and a
+                        # catastrophic result, and the mechanism is unexplained.
+                        # Note the rest of this surface is noisy -- 0.32 scored
+                        # 80 in-sample and 62 out -- so treat any single reading
+                        # here as unreliable and only 0.28's badness as solid.
                         # of all owned tiles. Feed is bought, not grown, but
                         # home wheat is what carries a bad seed through a price
                         # spike -- and wheat is the endgame crop, so this is the
