@@ -684,10 +684,23 @@ WHEAT_CARRY = 6         # one hand holding all the wheat is every hand behind it
 #   TOMATO_PLANT_PRIO  2 -> 28   6 -> 51
 #   WHEAT_PLANT_PRIO   7 -> 40  11 -> 31
 #   PRIO_WEIGHT        3 ->  0   6 ->  0
+#   PLANT_PRIO         5 -> 29   9 -> 43
+#   WHEAT_RUSH_PRIO    1 -> 50   4 -> 55
 #
 # STRAW_PLANT_PRIO and FERT_PRIO were both absent from an earlier version of
 # this list that claimed to be complete. One was already right and the other
-# was worth 171/240. Audit the list against the file, not against memory.
+# was worth 171/240. Audit the list against the file, not against memory --
+# and note that the commit which first wrote that sentence ALSO claimed every
+# tier was covered while PLANT_PRIO and WHEAT_RUSH_PRIO were not. Both turned
+# out correct, but the claim was made from memory in the act of warning
+# against exactly that. `grep '^[A-Z_]* *=' main.py` is the check.
+#
+# Still unswept under this configuration, in rough order of prior:
+#   MELON_EARLY / MELON_LATE / MELON_WAVE2 / MELON_STOP  (tuned when the board
+#     carried 24 melon tiles and a 10-animal herd)
+#   STRAW_STOP / STRAW_TILES / TOMATO_STOP  (the acreage handoff tomato sits in)
+#   WHEAT_RUSH_DAY  (adopted two sessions before any of this round's changes)
+#   LAND_DAY4 / CASH_RESERVE / PLANT_HOUR
 #
 # WHEAT_CARRY is worth a note because the hypothesis behind it was reasonable
 # and wrong. We make 335 PICKUPs a game against the frontier's 133-254, and
