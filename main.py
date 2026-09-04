@@ -270,7 +270,19 @@ STRAW_STOP = 12         # last day a strawberry tile is reserved. Planted here i
                         # finishes its fourth tick on day 28; after that the
                         # reservation lapses and the tiles become wheat as the
                         # plants decay, which *is* the endgame conversion.
-MELON_EARLY = 12        # wave 1: funds the opening, harvested day 10-12. Was 5,
+MELON_EARLY = 6         # halved. The 12 was fitted when this block effectively
+                        # carried 24 tiles (it re-reserves at every land unlock)
+                        # on a 10-animal farm with no tomato. The board now runs
+                        # 13 animals and gives 16 tiles to tomato, so the opening
+                        # does not need this much melon to fund it.
+                        #   in-sample      4 -> 34   6 -> 90   8 -> 72   16 -> 5
+                        #   out-of-sample  6 -> 87   8 -> 62  10 -> 40  (ctrl 60)
+                        # 177/240 combined, the two samples within three games.
+                        # The surface is genuinely non-monotone -- 10 scores 40,
+                        # BELOW the control -- so this is a peak with sharp edges
+                        # rather than a slope. 8 was the safe-looking value at
+                        # 134/240; buying the missing cell at 6 was worth +43.
+                        # wave 1: funds the opening, harvested day 10-12. Was 5,
                         # copied from the frontier's opening. On this agent 12
                         # wins 110/120 in-sample and **120/120** out-of-sample,
                         # mean 81k, worst 37k. The frontier spends its opening
