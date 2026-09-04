@@ -647,6 +647,27 @@ WHEAT_CARRY = 6         # one hand holding all the wheat is every hand behind it
                         # unable to FEED. Swept 3-50; 6 won 47/48.
 
 
+# ---------------------------------------------------------------------------
+# Swept and settled at their current values under HERD_CAP=13 / SHEEP_CAP=6 /
+# FEED_DAYS=3 / HANDS_EARLY=4 / HANDS_MID=11 (this round). Re-sweeping these
+# without first changing something they depend on is wasted compute:
+#
+#   HERD_CAP      15 -> 35, 17 -> 11        MAX_HANDS   10 -> 25, 14 -> 0
+#   FEED_DAYS     2 -> 64, 4 -> 21          HANDS_DAY1/2  no cell beats 7/10
+#   PRIO_WEIGHT   3 -> 0,  6 -> 0           WATER_PRIO  2 -> 12, 4 -> 63
+#   TOMATO_DAY    15 -> 63, 19 -> 56        WHEAT_FRACTION see its own note
+#
+# Dead levers -- the swept values produce byte-identical games, so the constant
+# is not reachable in the current configuration at all:
+#
+#   ANIMAL_TILES    (herd term in `n_animal` always caps lower)
+#   PROJ_FRACTION   (0.5 and 0.7 identical)
+#   BUILD_PRIO      (6 and 9 identical)
+#
+# Measured dead outright, three times across two configurations:
+#   FERT_ONGOING_ONLY=0 -> 0/120   (prio-3 fertilize task starves watering)
+#   carrot, geese, holding tomato for the endgame -- see TOMATO_TILES.
+# ---------------------------------------------------------------------------
 QUADRANTS = ["NW", "NE", "SW", "SE"]   # block order for crops; NW is always owned
 
 
