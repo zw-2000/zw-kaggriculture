@@ -315,7 +315,20 @@ MELON_LATE = 0          # NO second melon wave. The tiles fall through to
                         # MELON_EARLY stays 12 (5 -> 41/120, 8 -> 22): the
                         # opening wave really does fund the bootstrap. It is
                         # only the second wave that was waste.
-MELON_WAVE2 = 10
+MELON_WAVE2 = 14        # was 10. With MELON_EARLY halved to 6, the right shape
+                        # is fewer melon tiles held LONGER, not a wide short
+                        # burst: 6 tiles reserved through day 14 instead of 12
+                        # through day 10.
+                        #   in-sample      6 -> 8    14 -> 92          (ctrl 60)
+                        #   out-of-sample  12 -> 84  14 -> 86  16 -> 84 (ctrl 60)
+                        # 178/240 combined, and 12/14/16 within two games of each
+                        # other -- a plateau, not the lone spike that made
+                        # WHEAT_FRACTION=0.32 collapse on fresh seeds.
+                        #
+                        # MELON_STOP is a DEAD LEVER: 8, 12 and 16 give
+                        # byte-identical games. It gates the second melon wave
+                        # and MELON_LATE=0 means there is no second wave, so it
+                        # is unreachable in this configuration.
 MELON_STOP = 12         # after this a melon tile is a wheat tile. Pulled in from
                         # 14: melon planted on day 13-14 first yields on day
                         # 23-24 and then occupies the tile through the window
