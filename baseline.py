@@ -571,7 +571,24 @@ TOMATO_PLANT_PRIO = 4   # one tier above strawberry planting. A tomato tile is
                         # worth ~$3,100 unfertilized over its four ticks; nothing
                         # else on the board is close, and the window is narrow.
 WATER_PRIO = 3          # a plant that weeds over tonight, or produces tonight
-FERT_PRIO = 3           # FERTILIZE doubles a production tick or a water bonus.
+FERT_PRIO = 2           # was 3, and the gap it closes is enormous: 2,457
+                        # FERTILIZE tasks are emitted a game and 52 performed.
+                        # Not a supply problem -- on the 315 turns where a task
+                        # exists, 2.5 units are already holding fertilizer. They
+                        # take nearer or equal-tier work instead, so the tier
+                        # itself was the constraint.
+                        #   in-sample      1 -> 81   2 -> 93   5 -> 73  (ctrl 60)
+                        #   out-of-sample  1 -> 73   2 -> 78   4 -> 63  (ctrl 60)
+                        # 171/240 combined. 4 sitting on the null matters: the
+                        # control is a true mirror with 38 ties, so any
+                        # perturbation converts ties to decided games and gets a
+                        # free shot at beating 60. 4 does not, so 2 is a real
+                        # peak rather than that artifact.
+                        # Note this is the OPPOSITE direction to
+                        # FERT_ONGOING_ONLY=0, which scores 0/120: adding
+                        # fertilize tasks for non-ongoing crops starves watering,
+                        # while prioritising the ones already emitted pays.
+                        # FERTILIZE doubles a production tick or a water bonus.
                         # A revert to 5 was proposed and MEASURED AND REJECTED on
                         # the post-fix agent: 3 scores 105/120 against 5's 93/120
                         # head-to-head, a 12-win gap on a clean two-arm sweep.
