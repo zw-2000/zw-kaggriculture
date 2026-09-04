@@ -656,6 +656,15 @@ WHEAT_CARRY = 6         # one hand holding all the wheat is every hand behind it
 #   FEED_DAYS     2 -> 64, 4 -> 21          HANDS_DAY1/2  no cell beats 7/10
 #   PRIO_WEIGHT   3 -> 0,  6 -> 0           WATER_PRIO  2 -> 12, 4 -> 63
 #   TOMATO_DAY    15 -> 63, 19 -> 56        WHEAT_FRACTION see its own note
+#   WHEAT_CARRY   9 -> 8,  12 -> 4          BUILD_PRIO  3/6/9 all 60
+#
+# WHEAT_CARRY is worth a note because the hypothesis behind it was reasonable
+# and wrong. We make 335 PICKUPs a game against the frontier's 133-254, and
+# every one is a trip to the shed; with 13 animals to feed instead of 10 it
+# looked like the carry was too small to amortise the walk. It is not: 9 and
+# 12 score 8 and 4 of 120. Inventory room costs more than trips do -- a unit
+# holding 12 wheat has no room for produce -- which is the same shape as the
+# FERT_CARRY decay this file already records.
 #
 # Dead levers -- the swept values produce byte-identical games, so the constant
 # is not reachable in the current configuration at all:
