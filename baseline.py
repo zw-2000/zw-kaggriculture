@@ -675,6 +675,20 @@ WHEAT_CARRY = 6         # one hand holding all the wheat is every hand behind it
 #   TOMATO_DAY    15 -> 63, 19 -> 56        WHEAT_FRACTION see its own note
 #   WHEAT_CARRY   9 -> 8,  12 -> 4          BUILD_PRIO  3/6/9 all 60
 #
+# Every priority tier is now measured under this configuration. FERT_PRIO
+# moved (3 -> 2, see its own note); the rest all hold, several sharply:
+#
+#   WATER_PRIO         2 -> 20   4 -> 50    (re-checked after FERT_PRIO moved
+#                                            above it; the cascade stopped here)
+#   STRAW_PLANT_PRIO   3 -> 16   7 ->  8
+#   TOMATO_PLANT_PRIO  2 -> 28   6 -> 51
+#   WHEAT_PLANT_PRIO   7 -> 40  11 -> 31
+#   PRIO_WEIGHT        3 ->  0   6 ->  0
+#
+# STRAW_PLANT_PRIO and FERT_PRIO were both absent from an earlier version of
+# this list that claimed to be complete. One was already right and the other
+# was worth 171/240. Audit the list against the file, not against memory.
+#
 # WHEAT_CARRY is worth a note because the hypothesis behind it was reasonable
 # and wrong. We make 335 PICKUPs a game against the frontier's 133-254, and
 # every one is a trip to the shed; with 13 animals to feed instead of 10 it
