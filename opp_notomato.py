@@ -1244,7 +1244,15 @@ def agent(obs):
                 acts[u] = ["PLACE", item, produce[item]]
             elif inv.get("FERTILIZER", 0) > FERT_CARRY and sum(shed.values()) < 100:
                 acts[u] = ["PLACE", "FERTILIZER", inv["FERTILIZER"] - FERT_CARRY]
-            elif unfed and inv.get("WHEAT", 0) == 0 and shed.get("WHEAT", 0) > 0:
+            elif (unfed > sum(i.get("WHEAT", 0) for i in invs)
+                  and inv.get("WHEAT", 0) == 0 and shed.get("WHEAT", 0) > 0):
+                # `unfed` alone asks "is any animal hungry", not "will *this*
+                # unit feed one". With 13 animals and 12 units every unit fetched
+                # WHEAT_CARRY each morning, ~13 feeds happened, and the rest rode
+                # back to the shed at midnight: measured 324 pickups a game
+                # hauling 1,365 wheat to deliver 292 feeds. Counting the wheat
+                # already in hand across the roster stops the herd being
+                # provisioned a dozen times over.
                 acts[u] = ["PICKUP", "WHEAT", min(WHEAT_CARRY, shed["WHEAT"])]
             if acts[u] is None and not any(inv.get(a) for a in ANIMALS):
                 # Only fetch an animal there is somewhere to put. A cow carried
