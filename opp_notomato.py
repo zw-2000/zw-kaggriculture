@@ -590,6 +590,36 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+CARE_PRIO = 4           # was a hardcoded 4, invisible to the audit that claimed
+                        # "every priority tier measured" -- that greps for
+                        # module-level assignments. Measured, unchanged:
+                        #   vs v17:  2 -> 85   4 -> 101   6 -> 90
+COLLECT_PRIO = 5        # likewise a hardcoded 5. 293 acts a game, the highest
+                        # volume task on the board. Measured, unchanged:
+                        #   vs v17:  3 -> 93   5 -> 101   7 -> 74
+WHEAT_BUY_PAD = 10      # feed wheat BOUGHT up to, on top of one per animal. A
+                        # second unnamed `+ 10`, distinct from WHEAT_KEEP_PAD
+                        # which governs what the sell block holds back.
+HAUL_LOAD = 8           # produce a hand carries before walking it to the shed.
+                        # Was a hardcoded 12 inside `elif n_produce >= 12`, so
+                        # invisible to every constant sweep this round -- found
+                        # only by walking the AST for numeric literals inside
+                        # functions.
+                        #   vs v17, primes       3->95  5->102  8->117  10->107
+                        #                        12->101  18->77
+                        #   vs v17, fresh seeds  8->116  10->112  12->110
+                        # 233/240 combined, the two samples within one game and
+                        # seats 58/58. Both neighbours also clear the shipped
+                        # value, so this is a peak rather than a spike.
+                        # A hand at 12 hoards produce that cannot be sold until
+                        # it is banked; at 8 the trips are shorter and interleave
+                        # with field work. That is the plausible story and it is
+                        # not what the measurement rests on.
+                        #
+                        # FIRST adoption of this round validated by the full
+                        # protocol before shipping -- fresh seeds AND the frozen
+                        # reference. The four reverted adoptions had fresh seeds
+                        # against a moving baseline, which cannot see drift.
 WHEAT_KEEP_PAD = 10     # feed wheat held back from the sell block, on top of one
                         # per animal. Was an unnamed `+ 10` inside the keep dict
                         # and so invisible to a coverage audit that greps for
@@ -1012,12 +1042,12 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
             # as early as day 25 while a well-phased cow still has day 27.
             if (not t["cared_today"] and t["fed_today"]
                     and _next_tick(t["placed_day"], spec, day + 1) <= DAYS - 2):
-                out.append((4, x, y, "CARE"))
+                out.append((CARE_PRIO, x, y, "CARE"))
             # ~$45 a unit, and the unit is already standing here, so it costs an
             # action and no walking. It is also the only source of the fertilizer
             # that doubles every strawberry tick.
             if t["fertilizer_available"]:
-                out.append((5, x, y, "COLLECT_FERTILIZER"))
+                out.append((COLLECT_PRIO, x, y, "COLLECT_FERTILIZER"))
             if t["yield_units"] > 0:
                 out.append((6, x, y, "HARVEST"))
             continue
@@ -1190,9 +1220,10 @@ def agent(obs):
     pasture_room = max(0, empty["PASTURE"] + build_budget - pending)
     feed_hold = (max(0, min(capacity, herd + pasture_room) * FEED_DAYS - wheat_stock)
                  * wheat_price)
-    if herd and day < DAYS - 1 and wheat_stock < herd + 10:
+    if herd and day < DAYS - 1 and wheat_stock < herd + WHEAT_BUY_PAD:
         room = 100 - sum(shed.values())
-        buy = min(herd + 10 - wheat_stock, room, int(money // wheat_price))
+        buy = min(herd + WHEAT_BUY_PAD - wheat_stock, room,
+                  int(money // wheat_price))
         if buy > 0:
             orders.append(["BUY_PRODUCT", "WHEAT", buy])
             feed_hold = max(0, feed_hold - buy * wheat_price)
@@ -1374,7 +1405,7 @@ def agent(obs):
             # governing the banking threshold above, and the 34-38 real FERTILIZE
             # acts a season are unaffected.
         # Hands hold everything until they walk it back; head home when loaded.
-        elif n_produce >= 12:
+        elif n_produce >= HAUL_LOAD:
             tx, ty = min(shed_tiles, key=lambda c: abs(c[0] - ux) + abs(c[1] - uy))
             acts[u] = [_step_toward(ux, uy, tx, ty)]
 
