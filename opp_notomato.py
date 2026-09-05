@@ -590,6 +590,26 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+WHEAT_KEEP_PAD = 10     # feed wheat held back from the sell block, on top of one
+                        # per animal. Was an unnamed `+ 10` inside the keep dict
+                        # and so invisible to a coverage audit that greps for
+                        # module-level assignments -- named here so the next
+                        # sweep can see it. Measured, and UNCHANGED:
+                        #   vs v17, primes   0->61  5->91  10->101  20->109
+                        #                    35->105  50->47  70->41
+                        #   vs v17, round 23 fresh seeds  10->101  20->99  35->104
+                        # 20 looked like +8 and does not replicate: 109 then 99,
+                        # below the shipped value. 35 is consistent at 105/104 but
+                        # only +3.5 over 10 across 240 games, about half a sigma.
+                        # Nothing adopted.
+                        #
+                        # Also a warning against copying half a strategy. The
+                        # rank-1 agent holds back essentially no feed wheat, which
+                        # made "hold less" the obvious inference -- but it BUYS
+                        # 150-225 wheat every day from day 10, so its buffer is
+                        # the market rather than the shed. We do not churn, so our
+                        # buffer has to be retained stock, and the measured
+                        # direction is the opposite of the imitation.
 FEED_DAYS = 3           # THE load-bearing constant of round 10, and the only one
                         # whose value was confirmed against the frozen v17
                         # reference rather than a moving baseline:
@@ -1265,7 +1285,7 @@ def agent(obs):
     #    Wheat is the one real exception and it is not a market judgement: wheat
     #    in the shed is feed. Selling it and buying it back next turn was once
     #    the single largest market flow of the season.
-    keep = {"WHEAT": 0 if day >= DAYS - 1 else n_animals + 10}
+    keep = {"WHEAT": 0 if day >= DAYS - 1 else n_animals + WHEAT_KEEP_PAD}
     sells = []
     for p in PRODUCTS:
         have = max(0, shed.get(p, 0) - keep.get(p, 0))
