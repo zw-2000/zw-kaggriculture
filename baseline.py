@@ -597,7 +597,14 @@ BANK_WINDOW_FRAC = 0.5  # SWEPT vs frozen v27: 0.3->29, 0.4->62, 0.5->86, 0.6->8
                         # a full day each -- so for those crops the window is
                         # inert, and the whole sweep is really measuring WHEAT
                         # (window 1/2/2/2/3) and CARROT (1/1/2/2/2). See
-                        # WATER_BANK_PRIO for why the long crops don't respond.
+                        # RESOLVED, and not by priority. TOMATO and STRAWBERRY
+                        # are `ongoing: True` -- they hit the early return above
+                        # and NEVER reach this code, so their window is not inert,
+                        # it is unreachable. MELON does reach it and harvests at
+                        # 6.00 of max_yield 6, 100% at cap: banking is already
+                        # saturating, there is no yield left to win. So this
+                        # constant governs WHEAT and CARROT only, and window 2
+                        # (what 0.5 gives both) is the sweep optimum. Closed.
                         # fraction of a one-shot crop's maxday at which it starts
                         # banking yield from WATER. Was `(maxday + 1) // 2`, a
                         # FORMULA rather than a literal -- the AST audit skipped
