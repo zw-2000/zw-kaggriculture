@@ -590,6 +590,20 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+BANK_WINDOW_FRAC = 0.5  # SWEPT vs frozen v27: 0.3->29, 0.4->62, 0.5->86, 0.6->86,
+                        # 0.75->50 of 120. 0.5 is the shipped value and wins; no
+                        # change. But 0.5 and 0.6 are BYTE-IDENTICAL over 120
+                        # games while moving the tomato/strawberry/melon windows
+                        # a full day each -- so for those crops the window is
+                        # inert, and the whole sweep is really measuring WHEAT
+                        # (window 1/2/2/2/3) and CARROT (1/1/2/2/2). See
+                        # WATER_BANK_PRIO for why the long crops don't respond.
+                        # fraction of a one-shot crop's maxday at which it starts
+                        # banking yield from WATER. Was `(maxday + 1) // 2`, a
+                        # FORMULA rather than a literal -- the AST audit skipped
+                        # it because its only constants are 1 and 2, which that
+                        # audit excluded as structural. Formulas built from
+                        # small literals are a whole category it could not see.
 REPLANT_CUTOFF = 3      # stop replanting wheat/animal tiles this many days
                         # before the end. Wheat first-yields on day 2, so 3 is
                         # the "will it mature" guard. Measured, unchanged:
@@ -1047,7 +1061,7 @@ def _plant_tasks(t, x, y, day, out):
         if produces and t["fertilized_until_day"] < day:
             out.append((FERT_PRIO, x, y, "FERTILIZE"))
         return
-    window = (c["maxday"] + 1) // 2
+    window = max(0, int(c["maxday"] * BANK_WINDOW_FRAC + 0.5))
     ripe = age >= c["first"] and t["yield_units"] > 0
     banking = window <= age <= c["maxday"] and t["yield_units"] < c["max_yield"]
     # Harvest the day it matures; sitting on it risks decay.
