@@ -590,6 +590,17 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+REPLANT_CUTOFF = 3      # stop replanting wheat/animal tiles this many days
+                        # before the end. Wheat first-yields on day 2, so 3 is
+                        # the "will it mature" guard. Measured, unchanged:
+                        #   vs v27, primes       2->75  3->86  5->93  7->87
+                        #                        9->79  12->79
+                        #   vs v27, fresh seeds  3->75  5->75  7->72
+                        # 5 looked like +7 on primes and is identical to 3 on
+                        # fresh seeds. 168 vs 161 of 240 is 0.9 sigma.
+HIRE_HOUR = 3           # DEAD LEVER: 1, 3 and 8 give byte-identical games. The
+                        # roster fills at hour 0, so `hour <= max(HIRE_HOUR, ...)`
+                        # never binds.
 WATER_BANK_PRIO = 5     # tier for the "+1 yield, or +2 fertilized" banking water,
                         # as opposed to the survival water at WATER_PRIO. Two
                         # watering tiers exist; earlier rounds swept WATER_PRIO
@@ -1144,7 +1155,7 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
             # squatting one for five days, and weeds only spawn on empty tiles.
             # Wheat, not strawberry: it matches the existing fall-through and
             # keeps this separate from any acreage change.
-            elif role in ("WHEAT", "ANIMAL") and day <= DAYS - 3:  # wheat first-yields day 2
+            elif role in ("WHEAT", "ANIMAL") and day <= DAYS - REPLANT_CUTOFF:
                 # Endgame rush, if enabled -- see WHEAT_RUSH_DAY.
                 if day >= WHEAT_RUSH_DAY:
                     out.append((WHEAT_RUSH_PRIO, x, y, "PLANT_WHEAT"))
@@ -1298,7 +1309,7 @@ def agent(obs):
     #    `_do_hire` returns before incrementing when it cannot pay -- so retrying
     #    while the roster is short is self-limiting: a day that fills at hour 0
     #    emits nothing afterwards and is byte-identical to before.
-    if me["hires_today"] < cap and hour <= max(3, (cap - 1) // 6):
+    if me["hires_today"] < cap and hour <= max(HIRE_HOUR, (cap - 1) // 6):
         for _ in range(min(6, max(0, cap - me["hires_today"]))):
             orders.append(["HIRE"])
 
