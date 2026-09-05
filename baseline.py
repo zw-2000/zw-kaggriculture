@@ -590,6 +590,27 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+FEED_STARVING_PRIO = 0  # an animal that missed yesterday: feed it before
+                        # anything else. Top of the queue, nothing above it.
+FEED_ROUTINE_PRIO = 2   # SWEPT vs frozen v27: 2->93, 3->47, 4->76, 5->52,
+                        # 6->48 of 120. Shipped value wins decisively; no change.
+                        # I PREDICTED 4-5 would win, reasoning that routine feed
+                        # is the deferrable half of the pair and should sit below
+                        # WATER_PRIO=3. Wrong, and worth recording why:
+                        # `consecutive_unfed >= 1` means the animal ALREADY missed
+                        # a day, so that tier is an emergency path, not the normal
+                        # deferral route. Routine feed carries the same same-day
+                        # deadline as banking water and protects the compounding
+                        # asset -- an unfed animal loses today's tick for good.
+                        # Perishable-before-durable held; my read of which side
+                        # feeding sits on did not. Note 3 is the WORST value while
+                        # 4 is second best: at 3 this ties WATER_PRIO and
+                        # FERT_PRIO, and a tie resolves by insertion order rather
+                        # than by design. More ordinal-crossing evidence.
+                        # an animal fed yesterday. Third blind-spot find: both
+                        # tiers were bare literals in a conditional expression,
+                        # `(0 if consecutive_unfed >= 1 else 2)`, so the AST
+                        # audit's 0/1/2 exclusion hid an entire priority pair.
 ONGOING_HARVEST_AT = 2  # yield_units at which an ONGOING crop (tomato,
                         # strawberry) is harvested at top priority. Was a bare
                         # literal 2, which the AST audit skipped for the same
@@ -1138,7 +1159,8 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
                           or (t.get("pending_care_bonus", 0) > 0
                               and _next_tick(t["placed_day"], spec, day) == day))
             if not t["fed_today"] and have_wheat and day < DAYS - 1 and feed_worth:
-                out.append((0 if t["consecutive_unfed"] >= 1 else 2, x, y, "FEED"))
+                out.append((FEED_STARVING_PRIO if t["consecutive_unfed"] >= 1
+                            else FEED_ROUTINE_PRIO, x, y, "FEED"))
             if t["yield_units"] >= ANIMAL_HARVEST_AT:
                 out.append((1, x, y, "HARVEST"))       # don't stall at max_held
             # One CARE on a cow is worth a whole $336 milk -- the single
