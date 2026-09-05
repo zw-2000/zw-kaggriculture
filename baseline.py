@@ -590,7 +590,23 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
-FEED_DAYS = 3           # was 4. Found in the head-to-head replay 105073754, not by
+FEED_DAYS = 3           # THE load-bearing constant of round 10, and the only one
+                        # whose value was confirmed against the frozen v17
+                        # reference rather than a moving baseline:
+                        #   vs v17.py:  1 -> 88   2 -> 96   3 -> 101   4 -> 54
+                        # The cliff between 3 and 4 has a mechanism. capacity is
+                        #   min(HERD_CAP, n_animals + max(pending,
+                        #       spendable // (wheat_price * FEED_DAYS)))
+                        # so at 4 the divisor is large enough that day-0 cash
+                        # cannot reach the fourth animal -- exactly the gap the
+                        # replay showed (they bought 2 cows, we bought 1).
+                        # Worth +47 against the fixed reference. Tomato, which
+                        # this file spends far more words on, is worth +7.
+                        # Necessary but not sufficient: with FEED_DAYS=4 the
+                        # other seven adoptions score 54 vs v17, below the null,
+                        # yet against a v17 that HAS FEED_DAYS=3 the full agent
+                        # still scores 102/120. Both halves compound.
+                        # was 4. Found in the head-to-head replay 105073754, not by
                         # sweeping: on day 0 the rank-177 agent and this one spend
                         # the same ~$2,950, and it buys 2 cows where we buy 1 and
                         # 16 units of feed wheat we do not need yet. By day 3 it
