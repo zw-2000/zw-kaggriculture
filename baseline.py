@@ -590,6 +590,14 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+ONGOING_HARVEST_AT = 2  # yield_units at which an ONGOING crop (tomato,
+                        # strawberry) is harvested at top priority. Was a bare
+                        # literal 2, which the AST audit skipped for the same
+                        # reason it skipped the banking window: 0/1/2 were on the
+                        # structural exclusion list. This one governs the two
+                        # crops the banking window cannot reach, and tomato sits
+                        # on the 1.32.7 hinge curve, so it is the more valuable
+                        # of the two blind-spot finds.
 BANK_WINDOW_FRAC = 0.5  # SWEPT vs frozen v27: 0.3->29, 0.4->62, 0.5->86, 0.6->86,
                         # 0.75->50 of 120. 0.5 is the shipped value and wins; no
                         # change. But 0.5 and 0.6 are BYTE-IDENTICAL over 120
@@ -1059,7 +1067,7 @@ def _plant_tasks(t, x, y, day, out):
         due = day + 1 - t["planted_day"] - c["first"]
         produces = (due >= 0 and c["interval"] and due % c["interval"] == 0
                     and due // c["interval"] + 1 <= c["max_yield"])
-        if t["yield_units"] >= 2:
+        if t["yield_units"] >= ONGOING_HARVEST_AT:
             out.append((1, x, y, "HARVEST"))       # keep room for a fertilized tick
         elif t["yield_units"] > 0:
             out.append((6, x, y, "HARVEST"))
