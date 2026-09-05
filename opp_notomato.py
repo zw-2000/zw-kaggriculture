@@ -590,6 +590,23 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+WATER_BANK_PRIO = 5     # tier for the "+1 yield, or +2 fertilized" banking water,
+                        # as opposed to the survival water at WATER_PRIO. Two
+                        # watering tiers exist; earlier rounds swept WATER_PRIO
+                        # twice and reported watering settled, having measured
+                        # one of them. Measured now, unchanged:
+                        #   vs v27, primes       3->68   5->60(mirror)  7->70
+                        #   vs v27, fresh seeds  3->57   5->60(mirror)  7->50
+                        # Both directions gained on primes and both lost on fresh
+                        # seeds; 7 lands exactly on the null over 240. That
+                        # symmetry IS the diagnostic -- the mirror control
+                        # carries 34 ties, so any perturbation converts ties into
+                        # decided games and gets a free shot at beating 60. A
+                        # real optimum has an anchor sitting ON the null (see
+                        # FERT_PRIO, where 4 did).
+RIPE_HARVEST_PRIO = 7   # tier for harvesting a ripe one-shot crop.
+DIG_PRIO = 7            # tier for clearing a weed. Measured, unchanged:
+                        #   vs v27:  4 -> 24   7 -> 60(mirror)   9 -> 56
 ANIMAL_HARVEST_AT = 3   # yield_units at which an animal tile gets a prio-1
                         # HARVEST so it does not stall at max_held. Another
                         # literal the constant sweeps could not see.
@@ -1014,10 +1031,10 @@ def _plant_tasks(t, x, y, day, out):
         if t["consecutive_unwatered"] >= 1:
             out.append((WATER_PRIO, x, y, "WATER"))   # dies tonight
         elif banking:
-            out.append((5, x, y, "WATER"))            # +1 yield, or +2 fertilized
+            out.append((WATER_BANK_PRIO, x, y, "WATER"))            # +1 yield, or +2 fertilized
             # watering every other day is enough to survive, so we skip it
     elif ripe:
-        out.append((7, x, y, "HARVEST"))
+        out.append((RIPE_HARVEST_PRIO, x, y, "HARVEST"))
     if banking and t["fertilized_until_day"] < day and not FERT_ONGOING_ONLY:
         out.append((FERT_PRIO, x, y, "FERTILIZE"))
 
@@ -1079,7 +1096,7 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
             # Was priority 8 and never reached: 15 weeds stood untouched from
             # day 15 to the end of the season, on land we wanted for pasture.
             # It matters more now -- every spent strawberry decays into one.
-            out.append((7, x, y, "DIG"))
+            out.append((DIG_PRIO, x, y, "DIG"))
             continue
         # A coop takes only a goose and a pasture only a cow or sheep, so the
         # op carries the structure and the unit matches what it is carrying.
