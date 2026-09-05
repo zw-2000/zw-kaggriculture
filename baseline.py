@@ -590,6 +590,13 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+WHEAT_DUMP_LEAD = 1     # days before the end at which the wheat reserve drops
+                        # to 0 and the whole stock is sold. At 1 that is one
+                        # dump on the final day, into a price the dump itself
+                        # crashes; a longer lead spreads it across turns.
+FEED_HORIZON = 2        # stop routine feeding this many days before the end --
+                        # past it an animal's next tick cannot land in time to
+                        # pay for the wheat.
 FEED_STARVING_PRIO = 0  # an animal that missed yesterday: feed it before
                         # anything else. Top of the queue, nothing above it.
 FEED_ROUTINE_PRIO = 2   # SWEPT vs frozen v27: 2->93, 3->47, 4->76, 5->52,
@@ -844,6 +851,35 @@ WHEAT_CARRY = 6         # one hand holding all the wheat is every hand behind it
 # generalises across OPPONENTS, and both halves were measured against the same
 # immediate predecessor while baseline.py advanced after each adoption.
 #
+# THE GAP IS NOT ECONOMIC. Measured 2026-09-05 against a live submission rated
+# 2961 (comfortably inside the top 10; found by hill-climbing the opponent graph
+# on per-agent updatedScore -- see below for why teamId is the wrong key):
+#
+#     that agent's median reward ................ 88,550
+#     ours ...................................... ~91,000
+#     it vs 2000+ opponents ..... 88,488 to their 86,546  (+2.3%)
+#     its record over 505 episodes .............. 276-229  (54.7%)
+#
+# So the top of the leaderboard does NOT out-earn us. It earns the same money and
+# wins the marginal games, and ~55% sustained against ever-stronger opposition
+# compounds into the 1,652 rating points between us and the top-10 cut. Our
+# economic engine is roughly competitive; the deficit is in CONTESTED play, where
+# market contention decides a 2% margin.
+#
+# The method consequence is uncomfortable and applies to everything below: every
+# adoption this session was validated against v27.py alone -- one opponent, from
+# our own lineage. A 5pp edge in a near-mirror is exactly the kind of gain that
+# need not survive a diverse field, which is the non-transitivity that bench.py
+# grew its opponent-pool argument for. Validate candidates against the POOL
+# (v27.py,v17.py,opp_herd.py,opp_crop.py,opp_notomato.py), not the mirror alone.
+#
+# API note, learned by getting it wrong: the leaderboard CSV's rating belongs to a
+# TEAM and reflects that team's best submission, while ListEpisodes keys on a
+# SUBMISSION. Matching a top-10 teamId therefore hands back that team's weak
+# agents -- it produced a "rank 9" submission whose own updatedScore was 771, and
+# a money comparison against it that meant nothing. Hill-climb on the per-agent
+# updatedScore inside the episode payload instead.
+
 # SATURATION. v17.py is now retired as a reference: the current agent scores
 # 237-238 of 240 against it across both seed sets, i.e. ~99% of the ceiling,
 # so it can no longer resolve differences between candidates. ANIMAL_BATCH=2
@@ -1155,7 +1191,7 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
             # lands whether or not the animal was fed. Day 28's feed is only
             # worth its wheat if it unlocks a banked bonus at that refresh, or
             # resets an escape counter that would wipe stock off the tile.
-            feed_worth = (day < DAYS - 2 or t["consecutive_unfed"] >= 1
+            feed_worth = (day < DAYS - FEED_HORIZON or t["consecutive_unfed"] >= 1
                           or (t.get("pending_care_bonus", 0) > 0
                               and _next_tick(t["placed_day"], spec, day) == day))
             if not t["fed_today"] and have_wheat and day < DAYS - 1 and feed_worth:
@@ -1445,7 +1481,7 @@ def agent(obs):
     #    Wheat is the one real exception and it is not a market judgement: wheat
     #    in the shed is feed. Selling it and buying it back next turn was once
     #    the single largest market flow of the season.
-    keep = {"WHEAT": 0 if day >= DAYS - 1 else n_animals + WHEAT_KEEP_PAD}
+    keep = {"WHEAT": 0 if day >= DAYS - WHEAT_DUMP_LEAD else n_animals + WHEAT_KEEP_PAD}
     sells = []
     for p in PRODUCTS:
         have = max(0, shed.get(p, 0) - keep.get(p, 0))
