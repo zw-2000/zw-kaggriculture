@@ -253,55 +253,26 @@ WHEAT_FRACTION = 0.38   # Re-swept under HERD_CAP=13 and both sides of 0.38 this
                         # whichever one the carve order makes pay for it.
                         # Re-sweep after any change to MELON_EARLY or HERD_CAP.
                         # See FINDINGS 10.18 / 10.24 / 10.27.
-STRAW_TILES = 24        # was 36, and the "INERT" claim below was only ever true
-                        # in one direction. Upward it holds -- 48 is
-                        # byte-identical to 36 -- but downward the ceiling does
-                        # bind, and binding helps: strawberry is at $1 by day 20
-                        # and the 12 tiles freed go to wheat and tomato.
-                        #   in-sample      24 -> 68   48 -> 60 (identical)
-                        #   out-of-sample  18 -> 39   24 -> 66   30 -> 60
-                        # 134/240, the two samples within two games. 30 is also
-                        # identical to 36, so the binding range starts below it
-                        # and 18 overshoots -- 24 is inside a real range rather
-                        # than on a slope.
-                        # Was: INERT -- a ceiling that never binds, not a target. In
-                        # `_roles` strawberry takes `rest[:STRAW_TILES]` *after*
-                        # animals, melon and wheat have carved, and what is left
-                        # is at most 36 tiles on a three-quadrant board and 28
-                        # once melon's second wave lands. Swept 30/36/42/48: all
-                        # four give rewards identical to the dollar. Real
-                        # strawberry acreage is set by ANIMAL_TILES, MELON_LATE
-                        # and WHEAT_FRACTION; move one of those instead. Kept at
-                        # 36 only as documentation of the intent. FINDINGS 10.8.
-                        #
-                        # (4 of 8 shop kinds want strawberry and it is `ongoing`:
-                        # planted once, four production ticks, ~7 units a tile
-                        # measured. Frontier sells 286 a season at $247.)
+STRAW_TILES = 36        # REVERTED to the v17 value. This scored 134/240 against its
+                        # immediate predecessor and confirmed out of sample, and
+                        # it still LOSES ground against the frozen v17 reference:
+                        # with all four of this round's late adoptions in, the
+                        # agent scored 58/120 against v17 where it had scored
+                        # 101/120 eight adoptions earlier. Reverting all four
+                        # restores exactly 101-19-0. See LINEAGE at the head of
+                        # the settled-constants block.
 STRAW_STOP = 12         # last day a strawberry tile is reserved. Planted here it
                         # finishes its fourth tick on day 28; after that the
                         # reservation lapses and the tiles become wheat as the
                         # plants decay, which *is* the endgame conversion.
-MELON_EARLY = 6         # halved. The 12 was fitted when this block effectively
-                        # carried 24 tiles (it re-reserves at every land unlock)
-                        # on a 10-animal farm with no tomato. The board now runs
-                        # 13 animals and gives 16 tiles to tomato, so the opening
-                        # does not need this much melon to fund it.
-                        #   in-sample      4 -> 34   6 -> 90   8 -> 72   16 -> 5
-                        #   out-of-sample  6 -> 87   8 -> 62  10 -> 40  (ctrl 60)
-                        # 177/240 combined, the two samples within three games.
-                        # The surface is genuinely non-monotone -- 10 scores 40,
-                        # BELOW the control -- so this is a peak with sharp edges
-                        # rather than a slope. 8 was the safe-looking value at
-                        # 134/240; buying the missing cell at 6 was worth +43.
-                        # wave 1: funds the opening, harvested day 10-12. Was 5,
-                        # copied from the frontier's opening. On this agent 12
-                        # wins 110/120 in-sample and **120/120** out-of-sample,
-                        # mean 81k, worst 37k. The frontier spends its opening
-                        # tiles on a day-3 strawberry ramp; we spend ours on
-                        # wheat, so the melon block is no longer competing with
-                        # the engine for the same ground. 10 and 14 also clear
-                        # 107-112 out-of-sample, so this is a broad optimum, not
-                        # the 8 -> 15/120 in-sample reading next to it (noise).
+MELON_EARLY = 12        # REVERTED to the v17 value. This scored 177/240 against its
+                        # immediate predecessor and confirmed out of sample, and
+                        # it still LOSES ground against the frozen v17 reference:
+                        # with all four of this round's late adoptions in, the
+                        # agent scored 58/120 against v17 where it had scored
+                        # 101/120 eight adoptions earlier. Reverting all four
+                        # restores exactly 101-19-0. See LINEAGE at the head of
+                        # the settled-constants block.
 MELON_LATE = 0          # NO second melon wave. The tiles fall through to
                         # strawberry, which is what the frontier does: it runs
                         # 14 melon and 33-36 strawberry on days 11-19 where we
@@ -326,20 +297,14 @@ MELON_LATE = 0          # NO second melon wave. The tiles fall through to
                         # MELON_EARLY stays 12 (5 -> 41/120, 8 -> 22): the
                         # opening wave really does fund the bootstrap. It is
                         # only the second wave that was waste.
-MELON_WAVE2 = 14        # was 10. With MELON_EARLY halved to 6, the right shape
-                        # is fewer melon tiles held LONGER, not a wide short
-                        # burst: 6 tiles reserved through day 14 instead of 12
-                        # through day 10.
-                        #   in-sample      6 -> 8    14 -> 92          (ctrl 60)
-                        #   out-of-sample  12 -> 84  14 -> 86  16 -> 84 (ctrl 60)
-                        # 178/240 combined, and 12/14/16 within two games of each
-                        # other -- a plateau, not the lone spike that made
-                        # WHEAT_FRACTION=0.32 collapse on fresh seeds.
-                        #
-                        # MELON_STOP is a DEAD LEVER: 8, 12 and 16 give
-                        # byte-identical games. It gates the second melon wave
-                        # and MELON_LATE=0 means there is no second wave, so it
-                        # is unreachable in this configuration.
+MELON_WAVE2 = 10        # REVERTED to the v17 value. This scored 178/240 against its
+                        # immediate predecessor and confirmed out of sample, and
+                        # it still LOSES ground against the frozen v17 reference:
+                        # with all four of this round's late adoptions in, the
+                        # agent scored 58/120 against v17 where it had scored
+                        # 101/120 eight adoptions earlier. Reverting all four
+                        # restores exactly 101-19-0. See LINEAGE at the head of
+                        # the settled-constants block.
 MELON_STOP = 12         # after this a melon tile is a wheat tile. Pulled in from
                         # 14: melon planted on day 13-14 first yields on day
                         # 23-24 and then occupies the tile through the window
@@ -607,38 +572,14 @@ TOMATO_PLANT_PRIO = 4   # one tier above strawberry planting. A tomato tile is
                         # worth ~$3,100 unfertilized over its four ticks; nothing
                         # else on the board is close, and the window is narrow.
 WATER_PRIO = 3          # a plant that weeds over tonight, or produces tonight
-FERT_PRIO = 2           # was 3, and the gap it closes is enormous: 2,457
-                        # FERTILIZE tasks are emitted a game and 52 performed.
-                        # Not a supply problem -- on the 315 turns where a task
-                        # exists, 2.5 units are already holding fertilizer. They
-                        # take nearer or equal-tier work instead, so the tier
-                        # itself was the constraint.
-                        #   in-sample      1 -> 81   2 -> 93   5 -> 73  (ctrl 60)
-                        #   out-of-sample  1 -> 73   2 -> 78   4 -> 63  (ctrl 60)
-                        # 171/240 combined. 4 sitting on the null matters: the
-                        # control is a true mirror with 38 ties, so any
-                        # perturbation converts ties to decided games and gets a
-                        # free shot at beating 60. 4 does not, so 2 is a real
-                        # peak rather than that artifact.
-                        # Note this is the OPPOSITE direction to
-                        # FERT_ONGOING_ONLY=0, which scores 0/120: adding
-                        # fertilize tasks for non-ongoing crops starves watering,
-                        # while prioritising the ones already emitted pays.
-                        # FERTILIZE doubles a production tick or a water bonus.
-                        # A revert to 5 was proposed and MEASURED AND REJECTED on
-                        # the post-fix agent: 3 scores 105/120 against 5's 93/120
-                        # head-to-head, a 12-win gap on a clean two-arm sweep.
-                        # Worth recording why the revert looked right and was not.
-                        # At 3 this ties WATER_PRIO, and on a strawberry
-                        # production morning `_plant_tasks` emits WATER and
-                        # FERTILIZE for the *same tile* at equal cost; `cand`
-                        # breaks that tie on the op string ("FERTILIZE" <
-                        # "WATER") and `claimed` is keyed on tile, so FERTILIZE
-                        # takes it and displaces the WATER that an ongoing crop's
-                        # fertilizer bonus requires. That inversion is real -- it
-                        # is just not fatal, because a day is 24 turns and the
-                        # displaced WATER lands on a later one, while the earlier
-                        # FERTILIZE does not come back. Mechanism, benchmarked.
+FERT_PRIO = 3           # REVERTED to the v17 value. This scored 171/240 against its
+                        # immediate predecessor and confirmed out of sample, and
+                        # it still LOSES ground against the frozen v17 reference:
+                        # with all four of this round's late adoptions in, the
+                        # agent scored 58/120 against v17 where it had scored
+                        # 101/120 eight adoptions earlier. Reverting all four
+                        # restores exactly 101-19-0. See LINEAGE at the head of
+                        # the settled-constants block.
 PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # must be watered the *same day* it goes in or it weeds
                         # over -- hence a cutoff at all. But the cutoff is now
@@ -700,6 +641,28 @@ WHEAT_CARRY = 6         # one hand holding all the wheat is every hand behind it
                         # unable to FEED. Swept 3-50; 6 won 47/48.
 
 
+# ---------------------------------------------------------------------------
+# LINEAGE. FINDINGS 13.11 says to re-run a frozen reference EVERY round. This
+# round ran it twice in twelve adoptions and the gap is the whole story:
+#
+#   after  8 adoptions   101-19-0 vs v17.py
+#   after 12 adoptions    58-62-0 vs v17.py     <- below the 60 null
+#   reverting those 4    101-19-0 vs v17.py     <- reproduces exactly
+#
+# All four late adoptions -- FERT_PRIO=2, MELON_EARLY=6, MELON_WAVE2=14,
+# STRAW_TILES=24 -- beat their immediate predecessor by 134-178 of 240 AND
+# confirmed on disjoint seeds, and every one of them costs ground against a
+# fixed opponent. Measured individually against v17: melon pair -28 together,
+# STRAW_TILES -15, FERT_PRIO -3.
+#
+# Out-of-sample confirmation cannot catch this. Fresh seeds test whether a
+# result generalises across BOARDS. Nothing in that protocol tests whether it
+# generalises across OPPONENTS, and both halves were measured against the same
+# immediate predecessor while baseline.py advanced after each adoption.
+#
+# Rule: an adoption is not adopted until it is measured against a frozen
+# reference several generations back. A win against the moving baseline is a
+# candidate, not a result.
 # ---------------------------------------------------------------------------
 # Swept and settled at their current values under HERD_CAP=13 / SHEEP_CAP=6 /
 # FEED_DAYS=3 / HANDS_EARLY=4 / HANDS_MID=11 (this round). Re-sweeping these
