@@ -604,7 +604,22 @@ WATER_BANK_PRIO = 5     # tier for the "+1 yield, or +2 fertilized" banking wate
                         # decided games and gets a free shot at beating 60. A
                         # real optimum has an anchor sitting ON the null (see
                         # FERT_PRIO, where 4 did).
-RIPE_HARVEST_PRIO = 7   # tier for harvesting a ripe one-shot crop.
+RIPE_HARVEST_PRIO = 9   # tier for harvesting a ripe one-shot crop. Was a
+                        # hardcoded 7, found by walking the AST for numeric
+                        # literals -- no constant sweep could see it.
+                        #   vs v27, primes       5->65  7->60(mirror)  8->79
+                        #                        9->86  11->37  13->13
+                        #   vs v27, fresh seeds  7->60(mirror)  8->73  9->75
+                        #                        10->48
+                        # 161/240 combined, seats 37/38. Both samples positive at
+                        # 8 and 9, both collapsing past 10 -- and that collapse
+                        # is what proves the mirror can resolve this tier at all,
+                        # which is exactly what WATER_BANK_PRIO could not show.
+                        # Higher number is lower priority, so this harvests ripe
+                        # one-shot crops LESS urgently and lets units take
+                        # better-placed work first. Note it does not share a
+                        # direction with HAUL_LOAD=8, which hauls SOONER; I
+                        # claimed a common theme before checking the signs.
 DIG_PRIO = 7            # tier for clearing a weed. Measured, unchanged:
                         #   vs v27:  4 -> 24   7 -> 60(mirror)   9 -> 56
 ANIMAL_HARVEST_AT = 3   # yield_units at which an animal tile gets a prio-1
