@@ -630,7 +630,21 @@ REPLANT_CUTOFF = 3      # stop replanting wheat/animal tiles this many days
 HIRE_HOUR = 3           # DEAD LEVER: 1, 3 and 8 give byte-identical games. The
                         # roster fills at hour 0, so `hour <= max(HIRE_HOUR, ...)`
                         # never binds.
-WATER_BANK_PRIO = 5     # tier for the "+1 yield, or +2 fertilized" banking water,
+WATER_BANK_PRIO = 4     # ADOPTED from 5. Five disjoint seed sets vs frozen
+                        # v27.py, all positive: +7 +11 +2 +5 +3, pooled 414/600
+                        # against 5's 386/600. Unpaired z=1.72 understates it --
+                        # both arms play identical seeds/seats/opponent, so the
+                        # per-game board variance cancels; the distribution-free
+                        # read is 5/5 arms positive, sign test p=0.031.
+                        # 5 TIED COLLECT_PRIO; 4 sits strictly above it. Banking
+                        # water is deadline-bound (miss the day, lose the yield)
+                        # while COLLECT is not -- products sit in the coop until
+                        # fetched. Perishable before durable. That is why 5->4
+                        # pays and 4->3 (crossing FERT_PRIO) does not: priorities
+                        # are ordinal queue positions, not magnitudes, so a
+                        # non-monotone sweep is expected here and smoothness is
+                        # the wrong prior. I called the zigzag noise; it was not.
+                        # tier for the "+1 yield, or +2 fertilized" banking water,
                         # as opposed to the survival water at WATER_PRIO. Two
                         # watering tiers exist; earlier rounds swept WATER_PRIO
                         # twice and reported watering settled, having measured
