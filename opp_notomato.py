@@ -590,6 +590,17 @@ PLANT_HOUR = 22         # `_new_plant` sets consecutive_unwatered = 1, so a crop
                         # 117/120 out-of-sample; 20 is the old value, 23 (no
                         # cutoff at all) still beats it at 96/93, and tightening
                         # is a catastrophe -- 17 and 14 both score **0/120**.
+ANIMAL_HARVEST_AT = 3   # yield_units at which an animal tile gets a prio-1
+                        # HARVEST so it does not stall at max_held. Another
+                        # literal the constant sweeps could not see.
+ANIMAL_BATCH = 3        # animals a unit collects from the shed per trip.
+                        # Measured, unchanged -- and the run that says so is also
+                        # the one that retired v17.py as a reference:
+                        #   vs v17, primes       2->120  3->117  5->116
+                        #   vs v17, fresh seeds  1->117  2->118  3->120
+                        # 238 vs 237 of 240. The two samples disagree on which is
+                        # better and both sit at 99% of the ceiling, so the
+                        # reference cannot resolve this. See LINEAGE.
 CARE_PRIO = 4           # was a hardcoded 4, invisible to the audit that claimed
                         # "every priority tier measured" -- that greps for
                         # module-level assignments. Measured, unchanged:
@@ -725,6 +736,16 @@ WHEAT_CARRY = 6         # one hand holding all the wheat is every hand behind it
 # result generalises across BOARDS. Nothing in that protocol tests whether it
 # generalises across OPPONENTS, and both halves were measured against the same
 # immediate predecessor while baseline.py advanced after each adoption.
+#
+# SATURATION. v17.py is now retired as a reference: the current agent scores
+# 237-238 of 240 against it across both seed sets, i.e. ~99% of the ceiling,
+# so it can no longer resolve differences between candidates. ANIMAL_BATCH=2
+# and =3 came out 238 vs 237 with the two seed sets disagreeing on the sign.
+# v12.py saturated the same way earlier and was replaced by v17.py.
+#
+# v27.py is the successor -- the nine-adoption state, frozen here. Measure
+# against v27.py from now on, and freeze a new one the moment it passes ~110
+# of 120.
 #
 # Rule: an adoption is not adopted until it is measured against a frozen
 # reference several generations back. A win against the moving baseline is a
@@ -1032,7 +1053,7 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
                               and _next_tick(t["placed_day"], spec, day) == day))
             if not t["fed_today"] and have_wheat and day < DAYS - 1 and feed_worth:
                 out.append((0 if t["consecutive_unfed"] >= 1 else 2, x, y, "FEED"))
-            if t["yield_units"] >= 3:
+            if t["yield_units"] >= ANIMAL_HARVEST_AT:
                 out.append((1, x, y, "HARVEST"))       # don't stall at max_held
             # One CARE on a cow is worth a whole $336 milk -- the single
             # highest-value action on the board. The bank pays out on the first
@@ -1387,7 +1408,7 @@ def agent(obs):
                 a = max(ANIMALS, key=lambda k: min(
                     stock[k], room if ANIMALS[k]["struct"] == "PASTURE"
                     else empty[ANIMALS[k]["struct"]]))
-                take = min(3, stock[a], room if ANIMALS[a]["struct"] == "PASTURE"
+                take = min(ANIMAL_BATCH, stock[a], room if ANIMALS[a]["struct"] == "PASTURE"
                            else empty[ANIMALS[a]["struct"]])
                 if take:
                     acts[u] = ["PICKUP", a, take]
