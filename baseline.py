@@ -1468,8 +1468,12 @@ def agent(obs):
         # re-PICKUPing it next turn is an infinite loop that once burned 962
         # actions a season. Fertilizer is held because the unit that collected it
         # is standing in the field where the crops that want it are.
+        # On the final day wheat is no longer working stock: live episode
+        # 106016536 ended with 31 units stranded on hands and therefore worth $0.
+        liquidating = day >= DAYS - 1
         produce = {k: v for k, v in inv.items()
-                   if k not in ("WHEAT", "FERTILIZER") and k not in ANIMALS and v > 0}
+                   if k != "FERTILIZER" and k not in ANIMALS and v > 0
+                   and (k != "WHEAT" or liquidating)}
         n_produce = sum(produce.values())
         if (ux, uy) in shed_tiles:
             if n_produce and sum(shed.values()) < 100:
@@ -1517,7 +1521,7 @@ def agent(obs):
             # governing the banking threshold above, and the 34-38 real FERTILIZE
             # acts a season are unaffected.
         # Hands hold everything until they walk it back; head home when loaded.
-        elif n_produce >= HAUL_LOAD:
+        elif n_produce >= HAUL_LOAD or (liquidating and n_produce):
             tx, ty = min(shed_tiles, key=lambda c: abs(c[0] - ux) + abs(c[1] - uy))
             acts[u] = [_step_toward(ux, uy, tx, ty)]
 
