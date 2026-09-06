@@ -190,6 +190,12 @@ assert mk[0][0] == "SELL", f"sells must lead the queue: {mk}"
 #     feed reserve does anything.
 a = check(obs(tiles={(4, 3): dict(GOOSE)}, shed={"WHEAT": 5}, prices=BASEP, hour=5))
 assert not any(o[:2] == ["SELL", "WHEAT"] for o in a["market"]), a["market"]
+# ...but carried wheat is returned to the shed on the final day so it can be
+# sold before reward is scored. Live episode 106016536 stranded 31 units.
+a = check(obs(day=29, farmer=(0, 0), invs=[{"WHEAT": 5}]))
+assert a["farmer"] in (["EAST"], ["SOUTH"]), a["farmer"]
+a = check(obs(day=29, farmer=(4, 4), invs=[{"WHEAT": 5}]))
+assert a["farmer"] == ["PLACE", "WHEAT", 5], a["farmer"]
 # ...and always sells eggs, which cannot crash.
 a = check(obs(shed={"EGG": 40}, prices=dict(crashed, EGG=36), hour=5))
 assert ["SELL", "EGG", 40] in a["market"], a["market"]
