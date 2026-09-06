@@ -501,65 +501,12 @@ STRAW_PLANT_PRIO = 5    # strawberry planting, one tier above wheat replanting.
                         # the rest of the season. Sharp peak -- tier 4 collapses
                         # to 19/120 by outranking CARE, and tier 6 to 42/120 by
                         # tying with the wheat replant it would displace.
-TOMATO_TILES = 16       # tomato is the one crop nobody in the field sells, so its
-                        # price is never pushed above target and it spends the
-                        # whole season climbing the *below* curve: $60 on day 0,
-                        # $380 on day 22, $857 on day 27 (measured, rank-1 replay
-                        # 104859742). Strawberry and wool are at $1 by then --
-                        # every agent including this one dumps them.
-                        # The sell side is nearly free: below target the curve is
-                        # linear at 0.4*60/200 = $0.12 a unit, so a thousand units
-                        # move the price $120. Strawberry above target is linear
-                        # at $1.92 a unit and crashes after ~60.
-                        # Sizing this block off the projected price instead of a
-                        # flat count is measured and dead: gating on `proj`
-                        # scored 54/120 at a $100 floor, 50 at $150 and 44 at
-                        # $250 against a 60 control, monotone in how hard it
-                        # gates. Even a $85 tomato tile beats the wheat it
-                        # displaces -- four ticks at $85 against six units at
-                        # $43 -- so the shop lottery is not worth reacting to.
-                        #
-                        # CARROT and EGG are the other two hinge products and
-                        # neither is worth planting, for one reason: a hinge only
-                        # runs if the town's drain clears the knee *after* our own
-                        # supply is subtracted, because selling refills the very
-                        # shortage we came for. On the expected draw -- 8 shop
-                        # instances over 8 types, so one of each -- tomato drains
-                        # 338 a season against our 64, leaving 274 against a knee
-                        # of 200, a 37% margin. Carrot drains 494 against our 80,
-                        # leaving 414 against a knee of 450: it never reaches it,
-                        # and measured it scores 46/120 at 8 tiles and 37 at 16.
-                        # Eight geese would supply 416 eggs against a 338 drain
-                        # and cancel it outright (see BUYABLE).
-                        #
-                        # How much this block is worth depends entirely on
-                        # FEED_DAYS, and neither constant is worth much alone.
-                        # All four cells against one fixed opponent,
-                        # `opp_notomato.py` (FEED_DAYS=3, TOMATO_TILES=0):
-                        #
-                        #                  TILES=0   TILES=16   tomato worth
-                        #   FEED_DAYS=3      60*       114          +54
-                        #   FEED_DAYS=4      93         90           -3
-                        #   (*) mirror of the opponent, so 60 by construction
-                        #
-                        # Swept alone at FEED_DAYS=4, tomato reads as noise and
-                        # would have been rejected. Swept alone with tomato at 0,
-                        # FEED_DAYS=3 *loses* to 4 by 93-27. They only pay
-                        # together, and the first measurement of each was taken
-                        # while the other sat at its wrong value -- which is why
-                        # tomato first measured 76 and later 114.
-                        #
-                        # Do NOT hold the crop for the end. The rank-2 agent
-                        # (2964.9) sells its first tomato and first egg on day 29
-                        # and it does not transfer: 46/120 holding to day 27,
-                        # 9 to day 28, 6 to day 29 against a 60 control, and
-                        # 94/120 against 114 with the opponent growing no tomato
-                        # at all -- so it loses uncontested too, not just because
-                        # a mirror opponent takes the curve first. Tomato peaks
-                        # on day 27 ($857) and falls to $707 as it is sold, so
-                        # harvesting into days 24-27 already captures the rise;
-                        # holding sells into our own dump and parks 64 units in
-                        # a 100-unit shed that discards its overflow nightly.
+TOMATO_TILES = 0        # Removed after diversified-pool validation. The earlier
+                        # 16-tile result was fit against one no-tomato near-mirror;
+                        # against five frozen families, 0 scored 504/600 versus
+                        # 16's 486/600, including 97-23 vs v27 and 117-3 vs the
+                        # herd agent. It also tied the identical no-tomato control
+                        # 49-49-22, proving the sweep changed only this reservation.
 TOMATO_DAY = 17         # tomato is ongoing with first=8, interval=1, max_yield=4,
                         # so a plant produces on exactly four days, seven days
                         # after planting. Planted day 17 those four ticks land on
