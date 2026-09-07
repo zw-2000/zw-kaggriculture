@@ -13,6 +13,12 @@ If it scores near what it scored at home, the route is board-independent and
 route search is reachable for us. If it collapses, their tape is doing something
 our reading of it does not capture.
 
+A board argument may be a replay path or `seed:N`. Because the route is
+board-independent (measured: 93%-144% of home on unseen boards, never a
+collapse), any seed is a legal board, so the supply of benchmark games is
+unlimited -- which lifts the 109-board ceiling panel.py works under. The tape
+replay's own configuration is reused so only the seed varies.
+
 Control: replaying a tape on its own board reproduces the recorded score
 exactly, which panel.py already relies on.
 """
@@ -34,8 +40,11 @@ def run(tape_path, board_path, agent):
     from kaggle_environments import make
 
     tr, tnames, tseat = load(tape_path)
-    br, bnames, _ = load(board_path)
-    config = dict(br["configuration"], seed=br["info"]["seed"])
+    if board_path.startswith("seed:"):
+        config = dict(tr["configuration"], seed=int(board_path[5:]))
+    else:
+        br, bnames, _ = load(board_path)
+        config = dict(br["configuration"], seed=br["info"]["seed"])
     env = make("kaggriculture", configuration=config)
     # Tape in seat 0, our agent in seat 1: the tape's own farm is the one it
     # scripted, so give it the seat its coordinates were written for.
@@ -54,9 +63,22 @@ if __name__ == "__main__":
     spec.loader.exec_module(m)
 
     tape_path, boards = sys.argv[1], sys.argv[2:]
+    # Sweep overrides on our side, same NAME=value convention as bench.py.
+    for a in list(boards):
+        if "=" in a and not a.startswith("--"):
+            boards.remove(a)
+            k, v = a.split("=", 1)
+            if not hasattr(m, k):
+                raise AttributeError(f"{k!r} is not defined in main.py")
+            setattr(m, k, float(v) if "." in v else int(v))
+            print(f"override {k}={v}")
+    wins = []
     print(f"{'tape owner':<18}{'home':>10}{'away':>10}{'kept':>7}{'us':>10}  board")
     for b in boards:
         who, home, away, us = run(tape_path, b, m.agent)
         same = "OWN" if b == tape_path else ""
+        wins.append(us > away)
         print(f"{who[:18]:<18}{home:>10,.0f}{away:>10,.0f}"
               f"{away / home if home else 0:>6.0%}{us:>10,.0f}  {b.rsplit('/', 1)[-1][:28]} {same}")
+    if wins:
+        print(f"OUR RECORD {sum(wins)}-{len(wins) - sum(wins)} of {len(wins)}")
