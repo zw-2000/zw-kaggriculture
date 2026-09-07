@@ -712,6 +712,8 @@ WHEAT_KEEP_PAD = 10     # feed wheat held back from the sell block, on top of on
                         # the market rather than the shed. We do not churn, so our
                         # buffer has to be retained stock, and the measured
                         # direction is the opposite of the imitation.
+WHEAT_TRADE_DAY = 10    # buy and hold market wheat after land and herd are funded
+WHEAT_TRADE_RESERVE = 40  # support our sale price, then liquidate on day 29
 FEED_DAYS = 3           # THE load-bearing constant of round 10, and the only one
                         # whose value was confirmed against the frozen v17
                         # reference rather than a moving baseline:
@@ -1338,6 +1340,7 @@ def agent(obs):
                   int(money // wheat_price))
         if buy > 0:
             orders.append(["BUY_PRODUCT", "WHEAT", buy])
+            wheat_stock += buy
             feed_hold = max(0, feed_hold - buy * wheat_price)
     # Everything discretionary -- land, animals, seeds -- spends out of this.
     spendable = max(0, spendable - feed_hold)
@@ -1409,6 +1412,16 @@ def agent(obs):
             orders.append(["BUY_SEED", crop, buy])
             spendable -= buy * CROPS[crop]["seed"]
 
+    trade_keep = (WHEAT_TRADE_RESERVE
+                  if WHEAT_TRADE_DAY <= day < DAYS - WHEAT_DUMP_LEAD else 0)
+    wheat_keep = n_animals + WHEAT_KEEP_PAD + trade_keep
+    if trade_keep and wheat_stock < wheat_keep:
+        room = 100 - sum(shed.values()) - sum(
+            o[2] for o in orders if o[:2] == ["BUY_PRODUCT", "WHEAT"])
+        buy = min(wheat_keep - wheat_stock, room, int(spendable // wheat_price))
+        if buy > 0:
+            orders.append(["BUY_PRODUCT", "WHEAT", buy])
+
     # 6. Sell everything that is not being held back as feed.
     #
     #    This block used to ration its sells four separate ways -- price floors
@@ -1428,7 +1441,7 @@ def agent(obs):
     #    Wheat is the one real exception and it is not a market judgement: wheat
     #    in the shed is feed. Selling it and buying it back next turn was once
     #    the single largest market flow of the season.
-    keep = {"WHEAT": 0 if day >= DAYS - WHEAT_DUMP_LEAD else n_animals + WHEAT_KEEP_PAD}
+    keep = {"WHEAT": 0 if day >= DAYS - WHEAT_DUMP_LEAD else wheat_keep}
     sells = []
     for p in PRODUCTS:
         have = max(0, shed.get(p, 0) - keep.get(p, 0))

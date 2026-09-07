@@ -190,6 +190,11 @@ assert mk[0][0] == "SELL", f"sells must lead the queue: {mk}"
 #     feed reserve does anything.
 a = check(obs(tiles={(4, 3): dict(GOOSE)}, shed={"WHEAT": 5}, prices=BASEP, hour=5))
 assert not any(o[:2] == ["SELL", "WHEAT"] for o in a["market"]), a["market"]
+# Market wheat is accumulated only after the productive farm is funded.
+a = check(obs(day=12, hour=5, money=99999, quads=("NW", "NE", "SW")))
+assert any(o[:2] == ["BUY_PRODUCT", "WHEAT"] for o in a["market"]), a["market"]
+a = check(obs(day=9, hour=5, money=99999, quads=("NW", "NE")))
+assert not any(o[:2] == ["BUY_PRODUCT", "WHEAT"] for o in a["market"]), a["market"]
 # ...but carried wheat is returned to the shed on the final day so it can be
 # sold before reward is scored. Live episode 106016536 stranded 31 units.
 a = check(obs(day=29, farmer=(0, 0), invs=[{"WHEAT": 5}]))
