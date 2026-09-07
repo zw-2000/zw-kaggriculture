@@ -313,7 +313,19 @@ MELON_STOP = 12         # after this a melon tile is a wheat tile. Pulled in fro
                         # the control in-sample but fade out of sample (75 -> 62),
                         # so the gain is in stopping earlier, not in the exact day.
 
-MAX_HANDS = 12          # hire cost is fib(n) *per day*, so a roster of n costs
+MAX_HANDS = 11          # was 12, and the 12 was measured at HANDS_MID=11. v32 cut
+                        # the mid-game roster to 10 because idle.py showed the
+                        # farm runs out of distinct workable tiles, and the
+                        # ceiling had to follow it -- section 11.6's rule that
+                        # these constants are only visible jointly.
+                        #   vs frozen v32  primes 109-11   oos r911 97-23
+                        #   vs frozen v27  primes  99-21   oos r912 96-24
+                        # 206-34 and 195-45. MAX_HANDS=10 scored 35-85 against
+                        # v32 and 12 is the mirror control at 60/120, so 11 is a
+                        # true peak between two worse neighbours.
+                        # The superseded reasoning for 12, which was correct for
+                        # the roster it was measured on:
+                        # hire cost is fib(n) *per day*, so a roster of n costs
                         # fib(n+2)-1 every single day: 10 hands is $143, 12 is
                         # $376, 14 is $986, 18 is $6,764 and 22 is $46,367. The
                         # last two bankrupt the farm outright -- both score
