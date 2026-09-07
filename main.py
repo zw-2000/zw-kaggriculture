@@ -372,7 +372,21 @@ HANDS_EARLY = 4         # back to 4. The 6 was adopted in v17 under HERD_CAP=10
                         # i.e. mid-season feed and seed buys, never the hire
                         # window. See test_agent.py section 9.
                         # Original note: the ramp is bought out of income,
-HANDS_MID = 11          # one below MAX_HANDS, not the full roster. Follows
+HANDS_MID = 10          # was 11, and the 11 was measured before idle.py existed.
+                        # idle.py's finding is that on most idle turns the farm
+                        # has no distinct workable tile left, so the eleventh
+                        # hand is bidding for work that is not there while
+                        # costing fib(11) = $89/day. Re-measured against two
+                        # frozen references on four disjoint 120-game sets:
+                        #   vs frozen v27  primes 105-15   oos r909 96-24
+                        #   vs frozen v31  primes  95-25   oos r910 97-23
+                        # 201-39 and 192-48. 12 scored 88-32 and 9 scored 90-30
+                        # against v27, so 10-11 is a plateau and 10 is its peak.
+                        # Out-of-sample mean reward rises 88,222 -> 94,346, which
+                        # is the quantity FINDINGS 19 named as the real gap.
+                        # The superseded reasoning for 11, kept because it is the
+                        # measurement this one had to overturn:
+                        # one below MAX_HANDS, not the full roster. Follows
                         # HANDS_EARLY going 6 -> 4 earlier this round: the
                         # mid-game number was set when the early number was 6,
                         # and moving one moved the other.
