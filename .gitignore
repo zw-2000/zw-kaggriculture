@@ -16,6 +16,7 @@ submit/
 live_scores.tsv
 live_monitor.jsonl
 live_monitor.log
+ratings.tsv
 .scratch/
 harness/
 .loopx/
