@@ -196,6 +196,9 @@ a = check(obs(day=29, farmer=(0, 0), invs=[{"WHEAT": 5}]))
 assert a["farmer"] in (["EAST"], ["SOUTH"]), a["farmer"]
 a = check(obs(day=29, farmer=(4, 4), invs=[{"WHEAT": 5}]))
 assert a["farmer"] == ["PLACE", "WHEAT", 5], a["farmer"]
+a = check(obs(day=29, farmer=(4, 4), tiles={(4, 3): dict(GOOSE)},
+              shed={"WHEAT": 10}))
+assert a["farmer"][:2] != ["PICKUP", "WHEAT"], a["farmer"]
 # ...and always sells eggs, which cannot crash.
 a = check(obs(shed={"EGG": 40}, prices=dict(crashed, EGG=36), hour=5))
 assert ["SELL", "EGG", 40] in a["market"], a["market"]
@@ -256,5 +259,16 @@ for d in range(30):
                          (3, 4): {"kind": "COOP"}},
                   invs=[{"WHEAT": 3, "EGG": 20}], shed={"WHEAT": 10, "GOOSE": 2},
                   seeds={"MELON": 2, "WHEAT": 5}))
+
+# Shed pickups reserve shared stock and the remaining feeding demand.
+herd_tiles = {(x, 3): dict(GOOSE) for x in range(4)}
+a = check(obs(day=12, farmer=(4, 4), hands=[(4, 4)] * 3,
+              tiles=herd_tiles, shed={"WHEAT": 3}, invs=[{} for _ in range(4)]), 3)
+pickups = [x for x in [a["farmer"]] + a["hands"] if x[:2] == ["PICKUP", "WHEAT"]]
+assert sum(x[2] for x in pickups) <= 3, pickups
+a = check(obs(day=12, farmer=(4, 4), hands=[(4, 4)] * 3,
+              tiles=herd_tiles, shed={"WHEAT": 30}, invs=[{} for _ in range(4)]), 3)
+pickups = [x for x in [a["farmer"]] + a["hands"] if x[:2] == ["PICKUP", "WHEAT"]]
+assert sum(x[2] for x in pickups) <= 4, pickups
 
 print("all checks passed")

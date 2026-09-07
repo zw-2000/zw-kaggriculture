@@ -1454,6 +1454,9 @@ def agent(obs):
     # ---------------- unit actions -----------------------------------------
     seeds = dict(priv["seeds"])
     stock = {a: shed.get(a, 0) for a in ANIMALS}
+    wheat_available = shed.get("WHEAT", 0)
+    wheat_needed = (max(0, unfed - sum(i.get("WHEAT", 0) for i in invs))
+                    if day < DAYS - 1 else 0)
     # Local tallies, never `shed` itself: `obs` is the live observation and two
     # units in the same turn must not both be handed the last unit of stock.
     claimed = set()
@@ -1481,16 +1484,12 @@ def agent(obs):
                 acts[u] = ["PLACE", item, produce[item]]
             elif inv.get("FERTILIZER", 0) > FERT_CARRY and sum(shed.values()) < 100:
                 acts[u] = ["PLACE", "FERTILIZER", inv["FERTILIZER"] - FERT_CARRY]
-            elif (unfed > sum(i.get("WHEAT", 0) for i in invs)
-                  and inv.get("WHEAT", 0) == 0 and shed.get("WHEAT", 0) > 0):
-                # `unfed` alone asks "is any animal hungry", not "will *this*
-                # unit feed one". With 13 animals and 12 units every unit fetched
-                # WHEAT_CARRY each morning, ~13 feeds happened, and the rest rode
-                # back to the shed at midnight: measured 324 pickups a game
-                # hauling 1,365 wheat to deliver 292 feeds. Counting the wheat
-                # already in hand across the roster stops the herd being
-                # provisioned a dozen times over.
-                acts[u] = ["PICKUP", "WHEAT", min(WHEAT_CARRY, shed["WHEAT"])]
+            elif wheat_needed and wheat_available and inv.get("WHEAT", 0) == 0:
+                # Reserve both stock and demand for later hands in this turn.
+                take = min(WHEAT_CARRY, wheat_available, wheat_needed)
+                acts[u] = ["PICKUP", "WHEAT", take]
+                wheat_available -= take
+                wheat_needed -= take
             if acts[u] is None and not any(inv.get(a) for a in ANIMALS):
                 # Only fetch an animal there is somewhere to put. A cow carried
                 # around with every pasture full leaves this unit permanently
