@@ -92,13 +92,17 @@ if __name__ == "__main__":
     paths = [a for a in sys.argv[1:] if "=" not in a and not a.startswith("--")]
     if not paths:
         raise SystemExit(__doc__)
-    spec = importlib.util.spec_from_file_location("panel_main", "main.py")
+    # --agent lets a candidate on a branch be scored without disturbing main.py,
+    # which bench.py and oos.py read off disk while they run.
+    agent_path = next((a.split("=", 1)[1] for a in sys.argv[1:]
+                       if a.startswith("--agent=")), "main.py")
+    spec = importlib.util.spec_from_file_location("panel_main", agent_path)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     # Same NAME=value convention as bench.py, and the same guard: a name main.py
     # does not define would setattr silently and measure nothing.
     for a in sys.argv[1:]:
-        if "=" in a:
+        if "=" in a and not a.startswith("--"):
             k, v = a.split("=", 1)
             if not hasattr(m, k):
                 raise AttributeError(f"{k!r} is not defined in main.py")
@@ -109,6 +113,7 @@ if __name__ == "__main__":
     # and the recorded score in that seat belongs to whoever held it. That is the
     # useful comparison on a top-ten board: same board, same opponent tape, their
     # production against ours.
+    print(f"agent {agent_path}")
     print(f"{'recorded':>19}  {'replayed':>19}  {'delta':>9}  {'':>6}  seat taken from -> vs")
     flips = kept = 0
     for p in paths:
