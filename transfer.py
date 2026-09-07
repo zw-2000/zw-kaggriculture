@@ -36,7 +36,7 @@ def load(path, seat=None):
     return r, names, seat
 
 
-def run(tape_path, board_path, agent):
+def run(tape_path, board_path, agent, our_seat=1):
     from kaggle_environments import make
 
     tr, tnames, tseat = load(tape_path)
@@ -46,19 +46,26 @@ def run(tape_path, board_path, agent):
         br, bnames, _ = load(board_path)
         config = dict(br["configuration"], seed=br["info"]["seed"])
     env = make("kaggriculture", configuration=config)
-    # Tape in seat 0, our agent in seat 1: the tape's own farm is the one it
-    # scripted, so give it the seat its coordinates were written for.
-    env.run([tape(tr["steps"], tseat), agent])
+    # Farm tiles are farm-local, so a tape recorded in one seat plays correctly
+    # in either. Seat still has to be controlled for: `_process_market` walks
+    # queue positions, and whether the two seats are symmetric there is a
+    # measured question, not an assumption -- hence `our_seat`.
+    players = [None, None]
+    players[our_seat] = agent
+    players[1 - our_seat] = tape(tr["steps"], tseat)
+    env.run(players)
     r = [s["reward"] for s in env.steps[-1]]
     home = tr["steps"][-1][tseat].get("reward")
-    return tnames[tseat], home, r[0], r[1]
+    return tnames[tseat], home, r[1 - our_seat], r[our_seat]
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         raise SystemExit(__doc__)
     import importlib.util
-    spec = importlib.util.spec_from_file_location("tmain", "main.py")
+    agent_path = next((a.split("=", 1)[1] for a in sys.argv[1:]
+                       if a.startswith("--agent=")), "main.py")
+    spec = importlib.util.spec_from_file_location("tmain", agent_path)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
 
@@ -72,10 +79,13 @@ if __name__ == "__main__":
                 raise AttributeError(f"{k!r} is not defined in main.py")
             setattr(m, k, float(v) if "." in v else int(v))
             print(f"override {k}={v}")
+    our_seat = 0 if "--seat0" in sys.argv else 1
+    boards = [b for b in boards if not b.startswith("--")]
+    print(f"our agent in seat {our_seat}: {agent_path}")
     wins = []
     print(f"{'tape owner':<18}{'home':>10}{'away':>10}{'kept':>7}{'us':>10}  board")
     for b in boards:
-        who, home, away, us = run(tape_path, b, m.agent)
+        who, home, away, us = run(tape_path, b, m.agent, our_seat)
         same = "OWN" if b == tape_path else ""
         wins.append(us > away)
         print(f"{who[:18]:<18}{home:>10,.0f}{away:>10,.0f}"
