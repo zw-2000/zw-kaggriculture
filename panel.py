@@ -43,7 +43,7 @@ def tape(steps, seat):
     return act
 
 
-def replay_against(path, agent):
+def replay_against(path, agent, profile_it=False):
     from kaggle_environments import make
 
     replay = json.load(open(path))
@@ -58,10 +58,30 @@ def replay_against(path, agent):
     seats[1 - mine] = tape(steps, 1 - mine)
     env.run(seats)
 
+    if profile_it:
+        # Same profile versus.py prints off a live replay, so the substituted
+        # season reads directly against the recorded one.
+        import versus
+        for seat, tag in ((mine, "REPLAYED-US"), (1 - mine, "TAPE-OPP")):
+            pr = versus.profile(env.steps, seat)
+            idle = pr["acts"].get("PASS", 0)
+            work = sum(v for k, v in pr["acts"].items() if k != "PASS")
+            print(f'{tag} {names[seat]}')
+            print(f'  seeds  {pr["seeds"]}')
+            print(f'  sold   {pr["sold"]}')
+            print(f'  idle   PASS={idle} work={work} share={idle / max(1, idle + work):.1%}')
+            print('  acts   ' + " ".join(f"{k}={v}" for k, v in pr["acts"].items()
+                                         if k not in ("PASS", "NORTH", "SOUTH", "EAST", "WEST")))
+            for d in (7, 15, 25):
+                if d in pr["snaps"]:
+                    q = pr["snaps"][d]
+                    print(f'  d{d:<5} money={q["money"]} crops={q["crops"]} animals={q["animals"]}')
+
     now = [s["reward"] for s in env.steps[-1]]
     was = [s.get("reward") for s in steps[-1]]
     return {
         "path": path.rsplit("/", 1)[-1],
+        "displaced": names[mine],
         "opponent": names[1 - mine],
         "was_us": was[mine], "was_opp": was[1 - mine],
         "now_us": now[mine], "now_opp": now[1 - mine],
@@ -69,7 +89,7 @@ def replay_against(path, agent):
 
 
 if __name__ == "__main__":
-    paths = [a for a in sys.argv[1:] if "=" not in a]
+    paths = [a for a in sys.argv[1:] if "=" not in a and not a.startswith("--")]
     if not paths:
         raise SystemExit(__doc__)
     spec = importlib.util.spec_from_file_location("panel_main", "main.py")
@@ -85,10 +105,14 @@ if __name__ == "__main__":
             setattr(m, k, float(v) if "." in v else int(v))
             print(f"override {k}={v}")
 
-    print(f"{'recorded':>19}  {'replayed':>19}   {'':>6}  opponent")
+    # On an episode we never played there is no seat of ours, so seat 0 is taken
+    # and the recorded score in that seat belongs to whoever held it. That is the
+    # useful comparison on a top-ten board: same board, same opponent tape, their
+    # production against ours.
+    print(f"{'recorded':>19}  {'replayed':>19}  {'delta':>9}  {'':>6}  seat taken from -> vs")
     flips = kept = 0
     for p in paths:
-        r = replay_against(p, m.agent)
+        r = replay_against(p, m.agent, profile_it="--profile" in sys.argv)
         won_before = r["was_us"] > r["was_opp"]
         won_now = r["now_us"] > r["now_opp"]
         mark = "WIN " if won_now else "LOSS"
@@ -98,5 +122,7 @@ if __name__ == "__main__":
         else:
             kept += 1
         print(f'{r["was_us"]:>9,.0f}v{r["was_opp"]:>9,.0f}  '
-              f'{r["now_us"]:>9,.0f}v{r["now_opp"]:>9,.0f}   {mark:>11}  {r["opponent"]}')
+              f'{r["now_us"]:>9,.0f}v{r["now_opp"]:>9,.0f}  '
+              f'{r["now_us"] - r["was_us"]:>+9,.0f}  {mark:>11}  '
+              f'{r["displaced"]} -> vs {r["opponent"]}')
     print(f"{kept} unchanged, {flips} flipped")
