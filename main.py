@@ -527,6 +527,27 @@ STRAW_PLANT_PRIO = 5    # strawberry planting, one tier above wheat replanting.
                         # the rest of the season. Sharp peak -- tier 4 collapses
                         # to 19/120 by outranking CARE, and tier 6 to 42/120 by
                         # tying with the wheat replant it would displace.
+CARROT_TILES = 0        # tiles reserved for carrot. 0 is the exact legacy
+                        # control -- `_roles` has never allocated carrot, so the
+                        # agent has known carrot as a market good and never
+                        # planted one. Every top-ten opponent grows it: seed
+                        # counts of 33, 47, 75 and 93 a season against our 0.
+                        # The mechanism is in MARKET_PARAMS. Carrot's T is 450,
+                        # the largest in the game against strawberry's 100, so
+                        # its price curve absorbs far more before saturating --
+                        # which is exactly the failure that costs us on MILK.
+                        # And it is the fastest crop on the board: first=2,
+                        # maxday=3, max_yield=4, so it is a three-day filler
+                        # rather than a season-long reservation.
+                        # "Measured dead" in section 10 was measured on the
+                        # mirror family, where both sides sell the same goods
+                        # and extra market capacity is worth nothing (FINDINGS
+                        # 32 on why that benchmark cannot see this).
+CARROT_DAY = 6          # not before the second quadrant is unlocked and the
+                        # opening melon/strawberry block is planted.
+CARROT_STOP = 26        # last day a carrot tile is worth starting: first yield
+                        # lands two days later and DAYS is 30.
+CARROT_PLANT_PRIO = 6   # between melon/dig (7) and strawberry planting (5).
 TOMATO_TILES = 0        # Removed after diversified-pool validation. The earlier
                         # 16-tile result was fit against one no-tomato near-mirror;
                         # against five frozen families, 0 scored 504/600 versus
@@ -1005,10 +1026,13 @@ def _roles(me, n, day, n_animal):
     # wants are already falling through to wheat.
     tom = (rest[len(straw):][:TOMATO_TILES]
            if TOMATO_DAY <= day <= TOMATO_STOP else [])
+    car = (rest[len(straw) + len(tom):][:CARROT_TILES]
+           if CARROT_DAY <= day <= CARROT_STOP else [])
     # Anything strawberry and tomato do not claim -- and everything they give
     # back once the reservations lapse -- is wheat.
-    return {"ANIMAL": animal, "WHEAT": wheat + rest[len(straw) + len(tom):],
-            "STRAWBERRY": straw, "MELON": melon, "TOMATO": tom}
+    return {"ANIMAL": animal,
+            "WHEAT": wheat + rest[len(straw) + len(tom) + len(car):],
+            "STRAWBERRY": straw, "MELON": melon, "TOMATO": tom, "CARROT": car}
 
 
 def _shape(f, x, T=None):
@@ -1218,6 +1242,8 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
                 out.append((STRAW_PLANT_PRIO, x, y, "PLANT_STRAWBERRY"))
             elif role == "TOMATO":
                 out.append((TOMATO_PLANT_PRIO, x, y, "PLANT_TOMATO"))
+            elif role == "CARROT":
+                out.append((CARROT_PLANT_PRIO, x, y, "PLANT_CARROT"))
             # ANIMAL is here as well as above, and that is the whole fix: with
             # `build_budget == 0` an empty ANIMAL tile used to match no branch at
             # all and emit no task, so it stayed bare for the rest of the season.
