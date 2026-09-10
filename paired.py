@@ -18,7 +18,6 @@ and gives the standard error the arms have to clear (GATES G14, FINDINGS 47).
 Reuses bench.SEEDS and bench._run so the games are the identical games bench
 runs; this file only changes how they are scored.
 """
-import multiprocessing as mp
 import statistics
 import sys
 
@@ -34,8 +33,8 @@ def compare(opponent, cfg_a, cfg_b, seeds=None):
     seeds = seeds or bench.SEEDS
     jobs = [(c, opponent, s, seat)
             for c in (cfg_a, cfg_b) for s in seeds for seat in (0, 1)]
-    with mp.Pool(min(6, mp.cpu_count())) as pool:
-        res = pool.map(bench._run, jobs)
+    with bench.pool() as p:
+        res = p.map(bench._run, jobs)
     # Keyed by (seed, seat), which is what makes it paired: the same board and
     # the same seating scored under both configs. Split on job index rather than
     # on the returned cfg -- multiprocessing hands back a copy, so identity and

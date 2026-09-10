@@ -43,6 +43,19 @@ SEEDS = [1, 3, 5, 7, 11, 13, 17, 23, 29, 31, 37, 41,
          229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283]
 
 
+def pool():
+    """A worker pool that gives memory back.
+
+    `_run` holds a full 720-step env -- every observation of every turn -- for
+    the length of a game, and a long-lived worker never returns that to the OS,
+    so a 480-game run grows until the box is out of memory. It was killed doing
+    exactly that. `maxtasksperchild` recycles the worker instead; BENCH_PROCS
+    caps parallelism when something else is already resident.
+    """
+    n = int(os.environ.get("BENCH_PROCS", 0)) or min(6, mp.cpu_count())
+    return mp.Pool(n, maxtasksperchild=8)
+
+
 def _pristine():
     """A second, unswept instance of main.py -- setattr on one must not reach it."""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
@@ -88,8 +101,8 @@ def main_():
 
     jobs = [(c, o, s, seat)
             for c in cfgs for o in opponents for s in SEEDS for seat in (0, 1)]
-    with mp.Pool(min(6, mp.cpu_count())) as pool:
-        res = pool.map(_run, jobs)
+    with pool() as p:
+        res = p.map(_run, jobs)
 
     rows = []
     for cfg in cfgs:
