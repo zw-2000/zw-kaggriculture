@@ -1,7 +1,13 @@
-"""Paired margin between two configs of main.py against one fixed opponent.
+"""Paired margin between two configs of main.py, against every opponent given.
 
-    .venv/bin/python paired.py pub_router.py GOOSE_CAP=0 GOOSE_CAP=6
+    .venv/bin/python paired.py pub_router.py,pub_harvestforge.py FERT_CARRY=3 FERT_CARRY=1
     .venv/bin/python paired.py --demo
+
+PASS MORE THAN ONE OPPONENT. FERT_CARRY=1 measures +2.73 sigma against
+pub_router.py and -1.58 sigma against pub_harvestforge.py, 120 games each, and
+pools to +668 -- null. The sign is set by which architecture is across the table,
+not by the boards, so a single-opponent sigma however large does not say whether
+an arm is adoptable (FINDINGS 48). The pooled row is the one G14 reads.
 
 `bench.py` ranks on wins, and against an opponent we never beat every arm reads
 0-120, so the win column carries no information and the only readable signal is
@@ -58,10 +64,18 @@ if __name__ == "__main__":
     if "--demo" in sys.argv:
         demo()
     else:
-        opp = sys.argv[1]
+        opps = sys.argv[1].split(",")
         a, b = _parse(sys.argv[2]), _parse(sys.argv[3])
-        mean, se, up, n = compare(opp, a, b)
-        sigma = mean / se if se else float("inf") if mean else 0.0
-        print(f"{sys.argv[3]} over {sys.argv[2]} vs {opp}: "
-              f"{mean:+,.0f}/game  se {se:,.0f}  {sigma:+.2f} sigma  "
-              f"{up}/{n} boards up")
+        print(f"{sys.argv[3]} over {sys.argv[2]}")
+        pooled_mean = pooled_up = pooled_n = 0
+        for opp in opps:
+            mean, se, up, n = compare(opp, a, b)
+            sigma = mean / se if se else 0.0
+            print(f"  vs {opp:<24} {mean:+8,.0f}/game  se {se:>6,.0f}  "
+                  f"{sigma:+.2f} sigma  {up}/{n} up")
+            pooled_mean += mean * n
+            pooled_up += up
+            pooled_n += n
+        if len(opps) > 1:
+            print(f"  {'POOLED':<27} {pooled_mean / pooled_n:+8,.0f}/game"
+                  f"{'':>16}  {pooled_up}/{pooled_n} up")
