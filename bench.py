@@ -44,13 +44,17 @@ SEEDS = [1, 3, 5, 7, 11, 13, 17, 23, 29, 31, 37, 41,
 
 
 def pool():
-    """A worker pool that gives memory back.
+    """A worker pool with a parallelism cap.
 
-    `_run` holds a full 720-step env -- every observation of every turn -- for
-    the length of a game, and a long-lived worker never returns that to the OS,
-    so a 480-game run grows until the box is out of memory. It was killed doing
-    exactly that. `maxtasksperchild` recycles the worker instead; BENCH_PROCS
-    caps parallelism when something else is already resident.
+    BENCH_PROCS caps workers when something else on the box is resident; a
+    480-game paired run was killed twice for system memory. `maxtasksperchild`
+    was added in the same change on the theory that `_run` leaks a game's env
+    per task -- MEASURED AND WRONG: one process running six games peaks at
+    290 MB and grows about 1 MB a game, so 4 workers is ~1.2 GB and the kills
+    are system-wide pressure, not this. The recycling is kept because it costs
+    nothing; the cap is the part that matters. Run one opponent per invocation
+    under `python -u` if a run is being killed, so a completed opponent row
+    survives the next one dying.
     """
     n = int(os.environ.get("BENCH_PROCS", 0)) or min(6, mp.cpu_count())
     return mp.Pool(n, maxtasksperchild=8)
