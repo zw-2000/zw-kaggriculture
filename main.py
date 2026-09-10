@@ -558,24 +558,6 @@ TOMATO_STOP = 21        # after this the block lapses back to wheat. Standing
 TOMATO_PLANT_PRIO = 4   # one tier above strawberry planting. A tomato tile is
                         # worth ~$3,100 unfertilized over its four ticks; nothing
                         # else on the board is close, and the window is narrow.
-CARROT_TILES = 0        # tiles reserved for carrot. 0 is the shipped v33
-                        # behaviour -- CARROT is in PRODUCTS and CROPS and is
-                        # priced, but nothing has ever planted one, so this is a
-                        # line the agent could not grow rather than a constant
-                        # swept to zero. pub_router.py earns 4,081 a game from 57
-                        # units at $71 against the $42 our wheat fetches, 14% of
-                        # the whole gap (FINDINGS 50). The one prior test scored
-                        # 59-61 against frozen v29 -- a MIRROR, where an opponent
-                        # selling what we sell makes a second line pure tile cost,
-                        # which is the blind spot G13 exists to name.
-CARROT_DAY = 2          # carrot is first=2, maxday=3, max_yield=4 and NOT
-                        # ongoing, so a tile cycles in 2-3 days and replants
-                        # itself through the empty-tile branch in `_tasks`. That
-                        # makes the window wide and the tile count the real lever.
-CARROT_STOP = 26        # after this the block lapses back to wheat, far enough
-                        # from the end that a started cycle still finishes.
-CARROT_PLANT_PRIO = 4   # matches TOMATO_PLANT_PRIO: one tier above strawberry
-                        # planting, below water and fertilize.
 WATER_PRIO = 3          # a plant that weeds over tonight, or produces tonight
 FERT_PRIO = 3           # REVERTED to the v17 value. This scored 171/240 against its
                         # immediate predecessor and confirmed out of sample, and
@@ -1031,18 +1013,6 @@ def _roles(me, n, day, n_animal):
     rest = rest[:len(rest) - n_melon]
 
     wheat, rest = rest[:n_wheat], rest[n_wheat:]
-    # Carrot comes out of WHEAT, not out of what strawberry gives back. Taking
-    # it from `rest` like tomato does means STRAW_TILES=36 eats the whole block
-    # through STRAW_STOP=12 and carrot gets ZERO tiles until day 13 -- measured,
-    # and it halved the season before the lever was ever benched. Wheat is the
-    # right donor anyway: it is our cheapest line at $42 a unit against carrot's
-    # $71, where strawberry at $19,081 a season is our largest.
-    # From the FRONT of the wheat block, which `rest` has already sorted by
-    # quadrant then distance, so these are the closest tiles: carrot is
-    # first=2/maxday=3, a one-day harvest window, and a tile a unit cannot reach
-    # in time is a tile that spoils. Wheat's window is forgiving; carrot's is not.
-    car, wheat = ((wheat[:CARROT_TILES], wheat[CARROT_TILES:])
-                  if CARROT_DAY <= day <= CARROT_STOP else ([], wheat))
     straw = rest[:STRAW_TILES] if day <= STRAW_STOP else []
     # Tomato takes its block from what strawberry gives back: `STRAW_STOP` is 12
     # and `TOMATO_DAY` is 17, so by the time this reservation opens the tiles it
@@ -1052,7 +1022,7 @@ def _roles(me, n, day, n_animal):
     # Anything strawberry and tomato do not claim -- and everything they give
     # back once the reservations lapse -- is wheat.
     return {"ANIMAL": animal, "WHEAT": wheat + rest[len(straw) + len(tom):],
-            "STRAWBERRY": straw, "MELON": melon, "TOMATO": tom, "CARROT": car}
+            "STRAWBERRY": straw, "MELON": melon, "TOMATO": tom}
 
 
 def _shape(f, x, T=None):
@@ -1262,8 +1232,6 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
                 out.append((STRAW_PLANT_PRIO, x, y, "PLANT_STRAWBERRY"))
             elif role == "TOMATO":
                 out.append((TOMATO_PLANT_PRIO, x, y, "PLANT_TOMATO"))
-            elif role == "CARROT":
-                out.append((CARROT_PLANT_PRIO, x, y, "PLANT_CARROT"))
             # ANIMAL is here as well as above, and that is the whole fix: with
             # `build_budget == 0` an empty ANIMAL tile used to match no branch at
             # all and emit no task, so it stayed bare for the rest of the season.
@@ -1474,7 +1442,7 @@ def agent(obs):
     #    $100 a tile and takes whatever is left. That ordering *is* the observed
     #    ramp -- the frontier buys 3 strawberry seeds on day 3 and 16 on day 10,
     #    not because of a schedule but because that is what the till held.
-    for crop in ("WHEAT", "MELON", "CARROT", "TOMATO", "STRAWBERRY"):
+    for crop in ("WHEAT", "MELON", "TOMATO", "STRAWBERRY"):
         short = wanted["PLANT_" + crop] - priv["seeds"].get(crop, 0)
         buy = max(0, min(short, int(spendable // CROPS[crop]["seed"])))
         if buy:
