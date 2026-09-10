@@ -45,6 +45,14 @@ def compare(opponent, cfg_a, cfg_b, seeds=None):
         _cfg, _opp, seed, seat = jobs[i]
         (got_a if i < half else got_b)[(seed, seat)] = mine
     deltas = [got_b[k] - got_a[k] for k in sorted(got_a)]
+    return summarise(deltas) + (deltas,)
+
+
+def summarise(deltas):
+    """Aggregates from raw per-board deltas, so chunks run separately can be
+    pooled exactly. Pooling means-of-means is only right when the chunks are
+    equal-sized, and pooling standard errors from summaries is not right at
+    all -- keep the deltas and re-summarise the concatenation."""
     mean = statistics.mean(deltas)
     se = statistics.stdev(deltas) / len(deltas) ** 0.5 if len(deltas) > 1 else 0.0
     return mean, se, sum(1 for d in deltas if d > 0), len(deltas)
@@ -53,7 +61,7 @@ def compare(opponent, cfg_a, cfg_b, seeds=None):
 def demo():
     """A config paired against itself must be exactly zero, on every board."""
     seeds = bench.SEEDS[:4]
-    mean, se, up, n = compare("pub_router.py", {"HERD_CAP": 13}, {"HERD_CAP": 13}, seeds)
+    mean, se, up, n, _d = compare("pub_router.py", {"HERD_CAP": 13}, {"HERD_CAP": 13}, seeds)
     assert n == 2 * len(seeds), n
     assert mean == 0.0 and se == 0.0 and up == 0, (mean, se, up)
     print("PAIRED_CHECKS_PASSED")
@@ -68,7 +76,7 @@ if __name__ == "__main__":
         print(f"{sys.argv[3]} over {sys.argv[2]}")
         pooled_mean = pooled_up = pooled_n = 0
         for opp in opps:
-            mean, se, up, n = compare(opp, a, b)
+            mean, se, up, n, _d = compare(opp, a, b)
             sigma = mean / se if se else 0.0
             print(f"  vs {opp:<24} {mean:+8,.0f}/game  se {se:>6,.0f}  "
                   f"{sigma:+.2f} sigma  {up}/{n} up")

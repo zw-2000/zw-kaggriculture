@@ -449,6 +449,20 @@ HANDS_DAY2 = 10         # HANDS_MID was 8, fitted when the board was strawberry-
 CASH_RESERVE = 0        # the frontier opens $3,000 -> $9 and runs on $9 for two
                         # days. There is no rainy day inside 30 turns; every
                         # dollar not compounding by day 2 is a dollar wasted.
+DROP_BANK = 1           # ADOPTED from 0. Bank a whole load with one DROP when
+                        # the unit holds two or more produce types and no working
+                        # stock; 0 is the shipped v33 behaviour and reproduces it
+                        # to the dollar (GATES G14, the byte-identical check).
+                        # +652/game pooled over 240 paired games, se 248, +2.63
+                        # sigma, and BOTH real opponents positive (+0.59 router,
+                        # +3.33 harvestforge) -- the first arm in FINDINGS to do
+                        # either. The mechanism predicted ~$470 before the bench
+                        # ran: 44 DROPs replace 88 PLACEs over three seeds, about
+                        # 15 turns a season at our own $31.6 an act, plus produce
+                        # reaching the shed up to two turns earlier where the
+                        # sell block can find it (FINDINGS 52). NOT SUBMITTED: at
+                        # 2.2% of a 29,532 gap it cannot pay for the rating age a
+                        # fresh submission costs (FINDINGS 19).
 PRIO_WEIGHT = 1         # steps of walking traded per priority level. Was 14,
                         # which on an 18-step board let a unit cross the whole
                         # farm for one tier -- priority dominated distance
@@ -1505,7 +1519,17 @@ def agent(obs):
                    and (k != "WHEAT" or liquidating)}
         n_produce = sum(produce.values())
         if (ux, uy) in shed_tiles:
-            if n_produce and sum(shed.values()) < 100:
+            # DROP (kaggriculture.py:343) banks the unit's ENTIRE inventory in one
+            # action; PLACE banks one item type, so a unit holding melon, wool and
+            # strawberry stands here three turns. We emit zero DROP a season
+            # against the router's 71 (FINDINGS 50). It is only safe when nothing
+            # held is working stock -- DROP cannot be told to keep the wheat, the
+            # fertilizer or a live animal, and dumping those is the re-PICKUP loop
+            # that once burned 962 actions a season.
+            if (DROP_BANK and len(produce) > 1 and len(inv) == len(produce)
+                    and sum(shed.values()) + n_produce <= 100):
+                acts[u] = ["DROP"]
+            elif n_produce and sum(shed.values()) < 100:
                 item = max(produce, key=produce.get)
                 acts[u] = ["PLACE", item, produce[item]]
             elif inv.get("FERTILIZER", 0) > FERT_CARRY and sum(shed.values()) < 100:
