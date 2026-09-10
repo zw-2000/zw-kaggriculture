@@ -463,6 +463,15 @@ DROP_BANK = 1           # ADOPTED from 0. Bank a whole load with one DROP when
                         # sell block can find it (FINDINGS 52). NOT SUBMITTED: at
                         # 2.2% of a 29,532 gap it cannot pay for the rating age a
                         # fresh submission costs (FINDINGS 19).
+ANIMAL_CREW = 0         # hands (by index, farmer excluded) that form a standing
+                        # pasture crew. 0 = no crews = the shipped behaviour.
+                        # Rung one of the rebuild: FINDINGS 56 showed chaining is
+                        # worth having only if crop work stays covered, and a crew
+                        # split is the smallest design that gives both.
+CREW_STAY = 8           # cost discount for a pasture-crew hand on its own
+                        # pasture tile: finish the pasture before moving on.
+CREW_PENALTY = 4        # steps of detour a unit pays to cross into the other
+                        # crew's work. Inert while ANIMAL_CREW is 0.
 PRIO_WEIGHT = 1         # steps of walking traded per priority level. Was 14,
                         # which on an 18-step board let a unit cross the whole
                         # farm for one tier -- priority dominated distance
@@ -1595,6 +1604,7 @@ def agent(obs):
     # sort burned 88% of a season on movement), so a priority level is still
     # worth PRIO_WEIGHT steps of detour.
     cand = []
+    animal_tiles = set(roles["ANIMAL"])
     for pr, tx, ty, op in tasks:
         for u, (ux, uy) in enumerate(units):
             if acts[u] is not None:
@@ -1609,7 +1619,24 @@ def agent(obs):
                 continue
             if op.startswith("PLANT_") and seeds.get(op[6:], 0) <= 0:
                 continue
-            cand.append((pr * PRIO_WEIGHT + abs(tx - ux) + abs(ty - uy), u, tx, ty, op))
+            # Standing crews: hands 1..ANIMAL_CREW work pastures, the rest work
+            # crops, and crossing over costs CREW_PENALTY steps. A crew that only
+            # sees pasture work chains feed -> care -> collect by itself, which
+            # is the router's 53.7% single-act rate, WITHOUT the stickiness that
+            # starved the crop fields and cost 23,000 a game (FINDINGS 56). Soft,
+            # so an idle crew still helps; 0 crew is the shipped behaviour.
+            cross = (ANIMAL_CREW and u > 0
+                     and ((tx, ty) in animal_tiles) != (u <= ANIMAL_CREW))
+            # Crews alone do not chain: the tiers still sweep the pastures
+            # breadth-first -- every FEED, then every CARE, then every COLLECT --
+            # so each pasture is visited three or four times a day. CREW_STAY is
+            # the depth-first half, scoped to the pasture crew on its own tile so
+            # the crop crew keeps watering covered.
+            stay = (CREW_STAY and 0 < u <= ANIMAL_CREW and (tx, ty) == (ux, uy)
+                    and (tx, ty) in animal_tiles)
+            cand.append((pr * PRIO_WEIGHT + abs(tx - ux) + abs(ty - uy)
+                         + (CREW_PENALTY if cross else 0) - (CREW_STAY if stay else 0),
+                         u, tx, ty, op))
     cand.sort()
 
     for _, u, tx, ty, op in cand:
