@@ -50,6 +50,10 @@ K._process_market, K._commit_unit = _wrap_pm, _wrap_cu
 
 
 def run(opponent, seeds, seat=0):
+    import os
+    if os.environ.get("BENCH_CRN") == "1":
+        import bench
+        bench._decouple_town()
     for s in seeds:
         env = make("kaggriculture", configuration={"seed": s})
         env.run([main.agent, opponent] if seat == 0 else [opponent, main.agent])
