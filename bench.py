@@ -69,10 +69,45 @@ def _pristine():
     return mod
 
 
+def _decouple_town():
+    """Common random numbers for the town (BENCH_CRN=1).
+
+    `_end_of_day` builds one RNG per day from (seed, day); both farms' weed spawns
+    draw from it first -- one draw per EMPTY tile -- and only then is the day's
+    shop chosen. So any lever that changes how many tiles stand empty re-rolls the
+    whole season's shop lottery, which is the demand side of the economy. Measured:
+    on seed 1 the shipped agent's town opened three PIZZA_SHOPs and three
+    ICE_CREAM_SHOPs, the same seed under a stickiness arm opened one of each, and
+    milk sold at $34 instead of $130 FOR BOTH PLAYERS. Pairing by seed cancelled
+    the board and not the market (FINDINGS 59).
+
+    Weeds here draw from a copy of the day's RNG state, one copy per farm, so each
+    farm's weeds still depend on its own empty tiles -- that part of a lever's
+    effect is real -- while the shop draw sees the untouched RNG and is identical
+    across arms. Towns stay uniformly random per seed; only the coupling goes.
+    """
+    import random
+    from kaggle_environments.envs.kaggriculture import kaggriculture as K
+    if getattr(K._spawn_weeds, "_crn", False):
+        return
+    orig, last = K._spawn_weeds, {"rng": None, "k": 0}
+
+    def spawn(farm, board_size, weed_chance, rng):
+        if last["rng"] is not rng:
+            last["rng"], last["k"] = rng, 0
+        own = random.Random(f"{rng.getstate()!r}/{last['k']}")
+        last["k"] += 1
+        return orig(farm, board_size, weed_chance, own)
+    spawn._crn = True
+    K._spawn_weeds = spawn
+
+
 def _run(job):
     cfg, opponent, seed, seat = job
     import main
     from kaggle_environments import make
+    if os.environ.get("BENCH_CRN") == "1":
+        _decouple_town()
     for k, v in cfg.items():
         # A swept name main.py does not define creates a dead module attribute:
         # setattr succeeds, nothing reads it, and the sweep silently measures one
