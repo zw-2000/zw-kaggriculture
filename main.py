@@ -544,12 +544,16 @@ STRAW_PLANT_PRIO = 5    # strawberry planting, one tier above wheat replanting.
                         # the rest of the season. Sharp peak -- tier 4 collapses
                         # to 19/120 by outranking CARE, and tier 6 to 42/120 by
                         # tying with the wheat replant it would displace.
-TOMATO_TILES = 0        # Removed after diversified-pool validation. The earlier
-                        # 16-tile result was fit against one no-tomato near-mirror;
-                        # against five frozen families, 0 scored 504/600 versus
-                        # 16's 486/600, including 97-23 vs v27 and 117-3 vs the
-                        # herd agent. It also tied the identical no-tomato control
-                        # 49-49-22, proving the sweep changed only this reservation.
+TOMATO_TILES = 8        # was 0 since v29, which removed it on the ANCESTOR pool
+                        # (504 vs 486 of 600) with the town lottery re-rolled
+                        # between arms (FINDINGS 59). Under BENCH_CRN=1 on the v34
+                        # base, 40 fresh seeds x 2 seats x both real opponents:
+                        #   4 -54   8 +1,238 (se 147, +8.43 sigma)   12 +1,329
+                        # 12 over 8 is +90 (+1.09): a flat top, and 8 displaces
+                        # fewer tiles at the lower se. 4 is a cliff (-9.78 below
+                        # 8). Wins flat against harvestforge, 32-28 -> 31-29 on 60
+                        # games. Neither real opponent sells tomato, which is why
+                        # the town drains it and the price runs (FINDINGS 14.7).
 TOMATO_DAY = 17         # tomato is ongoing with first=8, interval=1, max_yield=4,
                         # so a plant produces on exactly four days, seven days
                         # after planting. Planted day 17 those four ticks land on
