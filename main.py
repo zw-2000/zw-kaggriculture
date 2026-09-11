@@ -268,14 +268,14 @@ STRAW_STOP = 12         # last day a strawberry tile is reserved. Planted here i
                         # finishes its fourth tick on day 28; after that the
                         # reservation lapses and the tiles become wheat as the
                         # plants decay, which *is* the endgame conversion.
-MELON_EARLY = 12        # REVERTED to the v17 value. This scored 177/240 against its
-                        # immediate predecessor and confirmed out of sample, and
-                        # it still LOSES ground against the frozen v17 reference:
-                        # with all four of this round's late adoptions in, the
-                        # agent scored 58/120 against v17 where it had scored
-                        # 101/120 eight adoptions earlier. Reverting all four
-                        # restores exactly 101-19-0. See LINEAGE at the head of
-                        # the settled-constants block.
+MELON_EARLY = 10        # was 12, the v17 value, fitted with the town lottery
+                        # re-rolled between arms (FINDINGS 59). Screened at +649
+                        # (+2.50 sigma) on the STRAW_TILES=36 base, then confirmed
+                        # on the STRAW_TILES=21 base under BENCH_CRN=1 on 40 fresh
+                        # seeds x 2 seats x both real opponents: +1,207/game,
+                        # se 278, +4.34 sigma, both opponents positive. 8 is
+                        # -1,872 below 10 on the same boards (-5.71 sigma) and 14
+                        # was -6.77 on the screen, so 10 is the peak (FINDINGS 61).
 MELON_LATE = 0          # NO second melon wave. The tiles fall through to
                         # strawberry, which is what the frontier does: it runs
                         # 14 melon and 33-36 strawberry on days 11-19 where we
