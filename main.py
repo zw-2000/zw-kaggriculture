@@ -253,14 +253,17 @@ WHEAT_FRACTION = 0.38   # Re-swept under HERD_CAP=13 and both sides of 0.38 this
                         # whichever one the carve order makes pay for it.
                         # Re-sweep after any change to MELON_EARLY or HERD_CAP.
                         # See FINDINGS 10.18 / 10.24 / 10.27.
-STRAW_TILES = 36        # REVERTED to the v17 value. This scored 134/240 against its
-                        # immediate predecessor and confirmed out of sample, and
-                        # it still LOSES ground against the frozen v17 reference:
-                        # with all four of this round's late adoptions in, the
-                        # agent scored 58/120 against v17 where it had scored
-                        # 101/120 eight adoptions earlier. Reverting all four
-                        # restores exactly 101-19-0. See LINEAGE at the head of
-                        # the settled-constants block.
+STRAW_TILES = 21        # was 36, the v17 value, chosen against our own ancestors
+                        # with the town shop lottery re-rolled between arms
+                        # (FINDINGS 59). Under BENCH_CRN=1, on 40 FRESH seeds x 2
+                        # seats x both real opponents, paired over 36:
+                        #   18 +2,533  21 +2,870  24 +2,590  27 +2,083  (+10.2
+                        #   sigma at 27, +6.85 at 21, 115/160 boards up)
+                        # 21 beats 18 by 338 and 24 by 280, each ~2 sigma on the
+                        # same boards, so it is the interior peak of a flat top.
+                        # Both opponents positive in every cell. Screened first on
+                        # bench.SEEDS[:20], then confirmed on disjoint seeds, so
+                        # the pick is not a selection artifact (FINDINGS 60).
 STRAW_STOP = 12         # last day a strawberry tile is reserved. Planted here it
                         # finishes its fourth tick on day 28; after that the
                         # reservation lapses and the tiles become wheat as the
