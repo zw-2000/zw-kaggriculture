@@ -91,9 +91,11 @@ ANIMALS = {  # mirrors kaggriculture.ANIMALS
 # Fed and cared for every day, an animal yields (1 + interval)/interval per day:
 # the CARE bonus banks +1 daily and pays out in full on the production tick.
 RATE = {a: 1 + 1 / v["interval"] for a, v in ANIMALS.items()}
-# Never buy a goose. 298 cows, 155 sheep and 0 geese across 35 top-10 seasons;
-# total eggs sold by all of them, all season, was 12 units. Egg's log glut curve
-# means it cannot be crashed, which is exactly why it is never worth much.
+# The old "never buy a goose" rule was fit to a curve that no longer exists:
+# EGG's `below` shape is "hinge" (MARKET_PARAMS), the same family as CARROT and
+# TOMATO after the 1.32.7 fix, not the flat log-glut this comment describes
+# (FINDINGS 14.7). Geese are handled as a fully parallel path below rather than
+# folded into BUYABLE -- see GOOSE_CAP -- so this stays COW/SHEEP only.
 BUYABLE = ("COW", "SHEEP")
 PRODUCTS = ["WHEAT", "CARROT", "TOMATO", "STRAWBERRY", "MELON",
             "EGG", "MILK", "WOOL", "FERTILIZER"]
@@ -573,6 +575,16 @@ TOMATO_STOP = 21        # after this the block lapses back to wheat. Standing
 TOMATO_PLANT_PRIO = 4   # one tier above strawberry planting. A tomato tile is
                         # worth ~$3,100 unfertilized over its four ticks; nothing
                         # else on the board is close, and the window is narrow.
+GOOSE_CAP = 0           # geese to keep standing, and coop tiles reserved for
+                        # them. A fully parallel path to the pasture buy/build
+                        # logic below -- never added to BUYABLE, never touches
+                        # `capacity`/`pending`/`room`/`grow`/`build_budget` -- so
+                        # the entire block is dead code at 0 and this must
+                        # reproduce shipped v35 to the dollar (GATES G14, the
+                        # byte-identical check). The pickup/place/feed/care/
+                        # collect/harvest machinery is already species-generic
+                        # (it iterates ANIMALS, not BUYABLE) and needed no
+                        # changes; only reservation, build and purchase are new.
 WATER_PRIO = 3          # a plant that weeds over tonight, or produces tonight
 FERT_PRIO = 3           # REVERTED to the v17 value. This scored 171/240 against its
                         # immediate predecessor and confirmed out of sample, and
@@ -1033,6 +1045,10 @@ def _roles(me, n, day, n_animal):
     rest = rest[:len(rest) - n_melon]
 
     wheat, rest = rest[:n_wheat], rest[n_wheat:]
+    # Coop tiles, from wheat, closest first. Unlike straw/tomato this is not a
+    # rotating crop and carries no day window: a coop is a season-long structure
+    # exactly like a pasture, reserved for as long as GOOSE_CAP is set at all.
+    goose, wheat = (wheat[:GOOSE_CAP], wheat[GOOSE_CAP:]) if GOOSE_CAP else ([], wheat)
     straw = rest[:STRAW_TILES] if day <= STRAW_STOP else []
     # Tomato takes its block from what strawberry gives back: `STRAW_STOP` is 12
     # and `TOMATO_DAY` is 17, so by the time this reservation opens the tiles it
@@ -1042,7 +1058,7 @@ def _roles(me, n, day, n_animal):
     # Anything strawberry and tomato do not claim -- and everything they give
     # back once the reservations lapse -- is wheat.
     return {"ANIMAL": animal, "WHEAT": wheat + rest[len(straw) + len(tom):],
-            "STRAWBERRY": straw, "MELON": melon, "TOMATO": tom}
+            "STRAWBERRY": straw, "MELON": melon, "TOMATO": tom, "GOOSE": goose}
 
 
 def _shape(f, x, T=None):
@@ -1172,7 +1188,8 @@ def _plant_tasks(t, x, y, day, out):
         out.append((FERT_PRIO, x, y, "FERTILIZE"))
 
 
-def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio):
+def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio,
+           goose_build_budget=0):
     """(priority, x, y, op) for all outstanding work. Lower priority = sooner.
 
     These are fixed tiers rather than coin values on purpose. Pricing each task
@@ -1244,6 +1261,12 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
             if role == "ANIMAL" and build_budget > 0 and build_op:
                 out.append((build_prio, x, y, build_op))
                 build_budget -= 1
+            elif role == "GOOSE" and goose_build_budget > 0:
+                # Independent of build_budget/build_op on purpose: a coop and a
+                # pasture can be under construction in the same turn without
+                # either budget starving the other.
+                out.append((build_prio, x, y, "BUILD_COOP"))
+                goose_build_budget -= 1
             elif hour > PLANT_HOUR:
                 continue
             elif role == "MELON":
@@ -1316,10 +1339,15 @@ def agent(obs):
     dicts = [t for t in tiles if isinstance(t, dict)]
     n_animals = sum(1 for t in dicts if "animal" in t)
     n_sheep = sum(1 for t in dicts if t.get("animal") == "SHEEP")
+    n_goose = sum(1 for t in dicts if t.get("animal") == "GOOSE") if GOOSE_CAP else 0
     unfed = sum(1 for t in dicts if "animal" in t and not t["fed_today"])
     empty = Counter(t["kind"] for t in dicts
                     if t.get("kind") in ("PASTURE", "COOP") and "animal" not in t)
-    n_struct = sum(empty.values())
+    n_struct = empty["PASTURE"]  # PASTURE only: an empty coop must not shrink
+                                  # pasture build room. Identical to
+                                  # sum(empty.values()) whenever no coop can
+                                  # exist (GOOSE_CAP=0), since empty["COOP"] is
+                                  # then always 0.
 
     # Cash binds the flock, not actions and not tiles: feed is bought, not grown.
     # Never *grow* past what FEED_DAYS of wheat money supports -- a starved
@@ -1359,6 +1387,19 @@ def agent(obs):
     # flat 14 on day 0 would take 14 of the starting quadrant's 24 tiles away
     # from the melon and wheat that pay for the animals.
     n_animal = min(ANIMAL_TILES, n_animals + n_struct + build_budget)
+    # Geese: a fully parallel mirror of the pasture math above, using its own
+    # variables throughout so nothing here can perturb a cow/sheep decision.
+    # Housing follows purchase the same way pastures do (a goose bought and
+    # stranded in the shed is dead money) -- same shape as `build_budget`, but
+    # against GOOSE_CAP and an independent spend estimate rather than HERD_CAP
+    # and the shared `capacity`.
+    goose_pending = (shed.get("GOOSE", 0) + sum(i.get("GOOSE", 0) for i in invs)
+                     if GOOSE_CAP else 0)
+    goose_affordable = (int(max(0, spendable) // ANIMALS["GOOSE"]["cost"]) + 1
+                        if GOOSE_CAP and spendable > 0 else 0)
+    goose_build_budget = (max(0, min(GOOSE_CAP - n_goose - empty["COOP"],
+                                     goose_pending + goose_affordable))
+                          if GOOSE_CAP else 0)
     roles = _roles(me, n, day, n_animal)
     # A pasture is normally a growth lever and waits its turn behind the daily
     # chores -- raising it costs the flock, measured. But an animal already
@@ -1367,7 +1408,9 @@ def agent(obs):
     # block -- four by the end of day 0 -- before a single pasture exists. While
     # any are waiting, housing them outranks everything.
     tasks = sorted(_tasks(me, roles, day, hour, any(i.get("WHEAT") for i in invs),
-                          build_budget, build_op, BUILD_URGENT_PRIO if pending else BUILD_PRIO))
+                          build_budget, build_op,
+                          BUILD_URGENT_PRIO if (pending or goose_pending) else BUILD_PRIO,
+                          goose_build_budget))
     wanted = Counter(op for _, _, _, op in tasks)
 
     # ---------------- market ------------------------------------------------
@@ -1388,13 +1431,23 @@ def agent(obs):
     #    reserve: strawberry at $100 a tile drank $500 of it on turn one and left
     #    four sheep with a single wheat between them.
     herd = n_animals + pending
+    # Geese eat too -- FEED is species-generic -- but a goose is fed from the
+    # same wheat pile a cow or sheep is, so this does not get its own discount
+    # against `wheat_stock`: that credit belongs to the pasture herd, which is
+    # computed first. Un-discounted is the conservative direction (reserves
+    # slightly more, never less), and it is exactly 0 at GOOSE_CAP=0.
+    goose_herd = n_goose + goose_pending
+    goose_room = (max(0, empty["COOP"] + goose_build_budget - goose_pending)
+                 if GOOSE_CAP else 0)
     wheat_stock = shed.get("WHEAT", 0) + sum(i.get("WHEAT", 0) for i in invs)
     pasture_room = max(0, empty["PASTURE"] + build_budget - pending)
     feed_hold = (max(0, min(capacity, herd + pasture_room) * FEED_DAYS - wheat_stock)
-                 * wheat_price)
-    if herd and day < DAYS - 1 and wheat_stock < herd + WHEAT_BUY_PAD:
+                 * wheat_price
+                 + (min(GOOSE_CAP, goose_herd + goose_room) * FEED_DAYS * wheat_price
+                    if GOOSE_CAP else 0))
+    if (herd or goose_herd) and day < DAYS - 1 and wheat_stock < herd + goose_herd + WHEAT_BUY_PAD:
         room = 100 - sum(shed.values())
-        buy = min(herd + WHEAT_BUY_PAD - wheat_stock, room,
+        buy = min(herd + goose_herd + WHEAT_BUY_PAD - wheat_stock, room,
                   int(money // wheat_price))
         if buy > 0:
             orders.append(["BUY_PRODUCT", "WHEAT", buy])
@@ -1455,6 +1508,17 @@ def agent(obs):
             spendable -= want * ANIMALS[a]["cost"]
             room -= want
             grow -= want
+
+    # 4b. Geese, entirely separate from the loop above: never in BUYABLE, its
+    #     own room (`goose_room`), its own cap (`GOOSE_CAP`), and it runs AFTER
+    #     cow/sheep so it spends only what they left in `spendable`. Inert at
+    #     GOOSE_CAP=0 (the whole block is skipped).
+    if GOOSE_CAP and day + ANIMALS["GOOSE"]["first"] < DAYS - 1:
+        goose_want = min(goose_room, GOOSE_CAP - n_goose - goose_pending,
+                         int(max(0, spendable - seed_hold) // ANIMALS["GOOSE"]["cost"]))
+        if goose_want > 0:
+            orders.append(["BUY_ANIMAL", "GOOSE", goose_want])
+            spendable -= goose_want * ANIMALS["GOOSE"]["cost"]
 
     # 5. Seeds for whatever empty tiles we're about to plant, read straight off
     #    the task list so the planting cutoffs live in exactly one place. Order
@@ -1568,12 +1632,14 @@ def agent(obs):
                 # as well as the ones standing: on day 0 there are none standing,
                 # so matching only against `empty` carried one sheep at a time
                 # and left the other four in the shed for a week.
-                room = max(empty["PASTURE"], min(build_budget, pending))
+                room_by_struct = {
+                    "PASTURE": max(empty["PASTURE"], min(build_budget, pending)),
+                    "COOP": (max(empty["COOP"], min(goose_build_budget, goose_pending))
+                            if GOOSE_CAP else empty["COOP"]),
+                }
                 a = max(ANIMALS, key=lambda k: min(
-                    stock[k], room if ANIMALS[k]["struct"] == "PASTURE"
-                    else empty[ANIMALS[k]["struct"]]))
-                take = min(ANIMAL_BATCH, stock[a], room if ANIMALS[a]["struct"] == "PASTURE"
-                           else empty[ANIMALS[a]["struct"]])
+                    stock[k], room_by_struct[ANIMALS[k]["struct"]]))
+                take = min(ANIMAL_BATCH, stock[a], room_by_struct[ANIMALS[a]["struct"]])
                 if take:
                     acts[u] = ["PICKUP", a, take]
                     stock[a] -= take
