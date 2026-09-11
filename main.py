@@ -486,6 +486,14 @@ PRIO_WEIGHT = 1         # steps of walking traded per priority level. Was 14,
                         # FINDINGS 10.9 filed this constant as "flat/inert on
                         # this farm shape"; that was measured before anyone knew
                         # the late game was labour-starved.
+HARVEST_LOW_PRIO = 6    # tier for harvesting below the *_HARVEST_AT threshold --
+                        # bare literal at two call sites, found by an AST census
+                        # for numeric literals outside named constants (the same
+                        # method that found v27's HAUL_LOAD and v28's
+                        # RIPE_HARVEST_PRIO). 0 is shipped behaviour.
+BUILD_URGENT_PRIO = 2   # tier for BUILD_PASTURE/COOP when an animal is already
+                        # bought and stranded in the shed -- see the comment
+                        # below. Bare literal, found by the same AST census.
 BUILD_PRIO = 6          # tier for BUILD_PASTURE -- the farm's only growth lever
 PROJ_FRACTION = 0.5     # how far into the rest of the season to price an animal
 PLANT_PRIO = 7          # tier for PLANT_*, endgame included -- see `_tasks`
@@ -1140,7 +1148,7 @@ def _plant_tasks(t, x, y, day, out):
         if t["yield_units"] >= ONGOING_HARVEST_AT:
             out.append((1, x, y, "HARVEST"))       # keep room for a fertilized tick
         elif t["yield_units"] > 0:
-            out.append((6, x, y, "HARVEST"))
+            out.append((HARVEST_LOW_PRIO, x, y, "HARVEST"))
         if not t["watered_today"] and (produces or t["consecutive_unwatered"] >= 1):
             out.append((WATER_PRIO, x, y, "WATER"))
         if produces and t["fertilized_until_day"] < day:
@@ -1213,7 +1221,7 @@ def _tasks(me, roles, day, hour, have_wheat, build_budget, build_op, build_prio)
             if t["fertilizer_available"]:
                 out.append((COLLECT_PRIO, x, y, "COLLECT_FERTILIZER"))
             if t["yield_units"] > 0:
-                out.append((6, x, y, "HARVEST"))
+                out.append((HARVEST_LOW_PRIO, x, y, "HARVEST"))
             continue
         if isinstance(t, dict) and t.get("kind") == "PLANT":
             _plant_tasks(t, x, y, day, out)
@@ -1359,7 +1367,7 @@ def agent(obs):
     # block -- four by the end of day 0 -- before a single pasture exists. While
     # any are waiting, housing them outranks everything.
     tasks = sorted(_tasks(me, roles, day, hour, any(i.get("WHEAT") for i in invs),
-                          build_budget, build_op, 2 if pending else BUILD_PRIO))
+                          build_budget, build_op, BUILD_URGENT_PRIO if pending else BUILD_PRIO))
     wanted = Counter(op for _, _, _, op in tasks)
 
     # ---------------- market ------------------------------------------------
