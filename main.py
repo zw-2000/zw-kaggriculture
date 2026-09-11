@@ -719,7 +719,12 @@ COLLECT_PRIO = 5        # likewise a hardcoded 5. 293 acts a game, the highest
 WHEAT_BUY_PAD = 10      # feed wheat BOUGHT up to, on top of one per animal. A
                         # second unnamed `+ 10`, distinct from WHEAT_KEEP_PAD
                         # which governs what the sell block holds back.
-HAUL_LOAD = 8           # produce a hand carries before walking it to the shed.
+HAUL_LOAD = 10          # produce a hand carries before walking it to the shed.
+                        # 8 -> 10 under BENCH_CRN=1 on the tomato base, 40 fresh
+                        # seeds x 2 seats x both real opponents: 10 +610/game
+                        # (se 105, +5.84 sigma; router +1.2, harvestforge +6.7),
+                        # 12 +389, and 12 is -221 below 10 on the same boards.
+                        # v27's 12 -> 8 below overshot on the mirror (FINDINGS 64).
                         # Was a hardcoded 12 inside `elif n_produce >= 12`, so
                         # invisible to every constant sweep this round -- found
                         # only by walking the AST for numeric literals inside
