@@ -1,6 +1,6 @@
 """Paired margin between two configs of main.py, against every opponent given.
 
-    .venv/bin/python paired.py pub_router.py,pub_harvestforge.py FERT_CARRY=3 FERT_CARRY=1
+    .venv/bin/python paired.py opponents/pub_router.py,opponents/pub_harvestforge.py FERT_CARRY=3 FERT_CARRY=1
     .venv/bin/python paired.py --demo
 
 PASS MORE THAN ONE OPPONENT. FERT_CARRY=1 measures +2.73 sigma against
@@ -61,7 +61,7 @@ def summarise(deltas):
 def demo():
     """A config paired against itself must be exactly zero, on every board."""
     seeds = bench.SEEDS[:4]
-    mean, se, up, n, _d = compare("pub_router.py", {"HERD_CAP": 13}, {"HERD_CAP": 13}, seeds)
+    mean, se, up, n, _d = compare("opponents/pub_router.py", {"HERD_CAP": 13}, {"HERD_CAP": 13}, seeds)
     assert n == 2 * len(seeds), n
     assert mean == 0.0 and se == 0.0 and up == 0, (mean, se, up)
     print("PAIRED_CHECKS_PASSED")

@@ -22,7 +22,9 @@ The game rules are in the second half of this file.
 | `validate.py` | Checks the benchmark itself: determinism, true parity, seat balance, out-of-sample seeds. |
 | `play.py` | One episode, day-by-day table, optional `replay.html`. |
 | `test_agent.py` | Dependency-free smoke test on invariants (legal actions, order caps). |
-| `FINDINGS.md` | The measurement log. Comments in `main.py` cite it by section number. |
+| `docs/FINDINGS.md` | The measurement log. Comments in `main.py` cite it by section number. |
+| `opponents/` | Frozen ancestor and public-tape opponents used by `bench.py`'s pool. |
+| `versions/` | Frozen historical snapshots of `main.py` (v12, v17, v27, ...) used as regression references. |
 
 ## How the agent decides a turn
 

@@ -1,6 +1,6 @@
 """Verify a frozen submission against its live decisions.
 
-    .venv/bin/python decision_check.py v27.py replay.json 1
+    .venv/bin/python decision_check.py versions/v27.py replay.json 1
 """
 import copy
 import importlib.util

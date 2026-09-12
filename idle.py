@@ -93,7 +93,7 @@ def season(opponent, seed):
 
 
 if __name__ == "__main__":
-    opp = sys.argv[1] if len(sys.argv) > 1 else "v27.py"
+    opp = sys.argv[1] if len(sys.argv) > 1 else "versions/v27.py"
     seeds = [int(a) for a in sys.argv[2:]] or [7]
     for s in seeds:
         result = season(opp, s)

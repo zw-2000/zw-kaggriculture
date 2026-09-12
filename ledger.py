@@ -1,6 +1,6 @@
 """Where the 29,532 is: every market dollar, by product and by seat.
 
-    .venv/bin/python ledger.py pub_router.py 1 3 5 7 11
+    .venv/bin/python ledger.py opponents/pub_router.py 1 3 5 7 11
     .venv/bin/python ledger.py --demo
 
 `_commit_unit` (kaggriculture.py:648) is the only place a market op moves money,
@@ -81,7 +81,7 @@ def report(n, ours, theirs):
 
 def demo():
     """Every commit attributes to a seat, and both seats trade."""
-    run("pub_router.py", [1])
+    run("opponents/pub_router.py", [1])
     assert sum(_rev[0].values()) > 0 and sum(_rev[1].values()) > 0, _rev
     assert sum(_spend[0].values()) > 0, _spend
     print("LEDGER_CHECKS_PASSED")
